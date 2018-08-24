@@ -77,12 +77,13 @@ if __name__ == '__main__':
     train_dir = os.path.join(lc_quad_dir, 'train')
     test_dir = os.path.join(lc_quad_dir, 'test')
     make_dirs([train_dir, test_dir])
+    make_dirs([os.path.join(lc_quad_dir, 'pth')])
 
     # java classpath for calling Stanford parser
     classpath = ':'.join([
         lib_dir,
         os.path.join(lib_dir, 'stanford-parser/stanford-parser.jar'),
-        os.path.join(lib_dir, 'stanford-parser/stanford-parser-3.5.1-models.jar')])
+        os.path.join(lib_dir, 'stanford-parser/stanford-parser-3.9.1-models.jar')])
 
     # split into separate files
     split(os.path.join(lc_quad_dir, 'train-data.json'), train_dir)

@@ -1,6 +1,5 @@
 import argparse
 
-
 def parse_args():
     parser = argparse.ArgumentParser(
         description='PyTorch TreeLSTM for Sentence Similarity on Dependency Trees')
@@ -25,7 +24,7 @@ def parse_args():
     parser.add_argument('--freeze_embed', action='store_true',
                         help='Freeze word embeddings')
     # training arguments
-    parser.add_argument('--epochs', default=1, type=int,
+    parser.add_argument('--epochs', default=15, type=int,
                         help='number of total epochs to run')
     parser.add_argument('--batchsize', default=25, type=int,
                         help='batchsize for optimizer updates')
@@ -33,11 +32,13 @@ def parse_args():
                         metavar='LR', help='initial learning rate')
     parser.add_argument('--wd', default=1e-4, type=float,
                         help='weight decay (default: 1e-4)')
+    parser.add_argument('--emblr', default=0.1, type=float,
+                        metavar='EMLR', help='initial embedding learning rate')
     parser.add_argument('--sparse', action='store_true',
                         help='Enable sparsity for embeddings, \
                               incompatible with weight decay')
     parser.add_argument('--optim', default='adam',
-                        help='optimizer (default: adagrad)')
+                        help='optimizer (default: adam)')
     # miscellaneous options
     parser.add_argument('--seed', default=123, type=int,
                         help='random seed (default: 123)')

@@ -6,3 +6,5 @@ lib/stanford-tagger
 .ftpconfig
 .ftpignore
 .vscode/
+.ipynb_checkpoints/
+analysis

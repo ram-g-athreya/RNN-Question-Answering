@@ -9,13 +9,15 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+import csv
+
 # IMPORT CONSTANTS
 from treelstm import Constants
 # NEURAL NETWORK MODULES/LAYERS
-from treelstm import SimilarityTreeLSTM
+from treelstm import TreeLSTM
 # DATA HANDLING CLASSES
 from treelstm import Vocab
-# DATASET CLASS FOR SICK DATASET
+# DATASET CLASS FOR LC_QUAD DATASET
 from treelstm import LC_QUAD_Dataset
 # METRICS CLASS FOR EVALUATION
 from treelstm import Metrics
@@ -73,7 +75,7 @@ def main():
     logger.debug('==> LC-QUAD output vocabulary size : %d ' % vocab_output.size())
 
     # load LC_QUAD dataset splits
-    train_file = os.path.join(args.data, 'lc_quad_train.pth')
+    train_file = os.path.join(args.data, 'pth/lc_quad_train.pth')
     if os.path.isfile(train_file):
         train_dataset = torch.load(train_file)
     else:
@@ -81,7 +83,7 @@ def main():
         torch.save(train_dataset, train_file)
     logger.debug('==> Size of train data   : %d ' % len(train_dataset))
 
-    test_file = os.path.join(args.data, 'lc_quad_test.pth')
+    test_file = os.path.join(args.data, 'pth/lc_quad_test.pth')
     if os.path.isfile(test_file):
         test_dataset = torch.load(test_file)
     else:
@@ -89,20 +91,19 @@ def main():
         torch.save(test_dataset, test_file)
     logger.debug('==> Size of test data    : %d ' % len(test_dataset))
 
+    criterion = nn.NLLLoss()
     # initialize model, criterion/loss_function, optimizer
-    model = SimilarityTreeLSTM(
-        vocab.size(),
+    model = TreeLSTM(
         args.input_dim,
         args.mem_dim,
         args.hidden_dim,
         args.num_classes,
-        args.sparse,
-        args.freeze_embed)
-    criterion = nn.CrossEntropyLoss()
+        criterion,
+        vocab_output
+    )
 
-    # for words common to dataset vocab and GLOVE, use GLOVE vectors
-    # for other words in dataset vocab, use random normal vectors
-    emb_file = os.path.join(args.data, 'lc_quad_embed.pth')
+    embedding_model = nn.Embedding(vocab.size(), args.input_dim)
+    emb_file = os.path.join(args.data, 'pth/lc_quad_embed.pth')
     if os.path.isfile(emb_file):
         emb = torch.load(emb_file)
     else:
@@ -111,7 +112,7 @@ def main():
             os.path.join(args.glove, 'glove.840B.300d'))
         logger.debug('==> GLOVE vocabulary size: %d ' % glove_vocab.size())
         emb = torch.zeros(vocab.size(), glove_emb.size(1), dtype=torch.float, device=device)
-        emb.normal_(0, 0.05)
+
         # zero out the embeddings for padding and other special words if they are absent in vocab
         for idx, item in enumerate([Constants.PAD_WORD, Constants.UNK_WORD,
                                     Constants.BOS_WORD, Constants.EOS_WORD]):
@@ -119,9 +120,13 @@ def main():
         for word in vocab.labelToIdx.keys():
             if glove_vocab.getIndex(word):
                 emb[vocab.getIndex(word)] = glove_emb[glove_vocab.getIndex(word)]
+            else:
+                emb[vocab.getIndex(word)] = torch.Tensor(emb[vocab.getIndex(word)].size()).normal_(-0.05, 0.05)
+
         torch.save(emb, emb_file)
     # plug these into embedding matrix inside model
-    model.emb.weight.data.copy_(emb)
+    # model.emb.weight.data.copy_(emb)
+    embedding_model.state_dict()['weight'].copy_(emb)
 
     model.to(device), criterion.to(device)
     if args.optim == 'adam':
@@ -136,66 +141,38 @@ def main():
     metrics = Metrics(args.num_classes)
 
     # create trainer object for training and testing
-    trainer = Trainer(args, model, criterion, optimizer, device, vocab_output)
+    trainer = Trainer(args, model, embedding_model, criterion, optimizer, device, vocab_output)
 
     best = -float('inf')
+    file_name = "analysis/input_dim={},mem_dim={},epochs={}".format(args.input_dim, args.mem_dim, args.epochs)
+
     for epoch in range(args.epochs):
+        print("\n" * 5)
+        # Train Model
         train_loss = trainer.train(train_dataset)
+
+        # Test Model on Training Dataset
         train_loss, train_pred = trainer.test(train_dataset)
+        train_acc = metrics.accuracy_score(train_pred, train_dataset.labels, vocab_output)
+
+        print('==> Train loss   : %f \t' % train_loss, end="")
+        print('Epoch ', str(epoch + 1), 'train percentage ', train_acc)
+        write_analysis_file(file_name, epoch, train_pred, train_dataset.labels, "train_acc", train_acc, vocab_output)
+
+        # Test Model on Testing Dataset
         test_loss, test_pred = trainer.test(test_dataset)
+        test_acc = metrics.accuracy_score(test_pred, test_dataset.labels, vocab_output)
 
-        labels = [vocab_output.getIndex(str(int(label))) for label in train_dataset.labels]
-        sum = 0
+        print('==> Test loss   : %f \t' % test_loss, end="")
+        print('Epoch ', str(epoch + 1), 'test percentage ', test_acc)
+        write_analysis_file(file_name, epoch, test_pred, test_dataset.labels, "test_acc", test_acc, vocab_output)
 
-
-
-        print(labels[:50])
-        print(train_pred[:50])
-
-
-        for index in range(len(train_dataset)):
-            if labels[index] == int(train_pred[index]):
-                sum += 1
-
-        print("\n\nTrain Data Accuracy: ", sum, sum / len(train_dataset), "\n\n")
-
-
-
-        print(labels[:50])
-        print(test_pred[:50])
-
-        labels = [vocab_output.getIndex(str(int(label))) for label in test_dataset.labels]
-        sum = 0
-        for index in range(len(test_dataset)):
-            if labels[index] == int(test_pred[index]):
-                sum += 1
-        print("\n\nTest Data Accuracy: ", sum, sum / len(test_dataset), "\n\n")
-
-
-
-
-        # train_pearson = metrics.pearson(train_pred, labels)
-        # train_mse = metrics.mse(train_pred, labels)
-
-        # logger.info('==> Epoch {}, Train \tLoss: {}\tPearson: {}\tMSE: {}'.format(
-        #     epoch, train_loss, train_pearson, train_mse))
-
-        # test_pearson = metrics.pearson(test_pred, test_dataset.labels)
-        # test_mse = metrics.mse(test_pred, test_dataset.labels)
-        # logger.info('==> Epoch {}, Test \tLoss: {}\tPearson: {}\tMSE: {}'.format(
-        #     epoch, test_loss, test_pearson, test_mse))
-
-        # if best < test_pearson:
-        #     best = test_pearson
-        #     checkpoint = {
-        #         'model': trainer.model.state_dict(),
-        #         'optim': trainer.optimizer,
-        #         'pearson': test_pearson, 'mse': test_mse,
-        #         'args': args, 'epoch': epoch
-        #     }
-        #     logger.debug('==> New optimum found, checkpointing everything now...')
-        #     torch.save(checkpoint, '%s.pt' % os.path.join(args.save, args.expname))
-
+def write_analysis_file(file_name, epoch, predictions, labels, accuracy_label, accuracy, vocab_output):
+    with open(file_name + ",current_epoch={},{}={}.csv".format(epoch + 1, accuracy_label, accuracy), "w") as csv_file:
+        writer = csv.writer(csv_file)
+        preds = [vocab_output.getLabel(int(pred)) for pred in predictions]
+        labels = labels.int().numpy()
+        writer.writerows(zip(preds, labels))
 
 if __name__ == "__main__":
     main()

@@ -42,7 +42,6 @@ def load_word_vectors(path):
     torch.save(vectors, path + '.pth')
     return vocab, vectors
 
-
 # write unique words from a set of files to a new file
 def build_vocab(filenames, vocabfile):
     vocab = set()

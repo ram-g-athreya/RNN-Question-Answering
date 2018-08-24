@@ -1,101 +1,115 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from torch.autograd import Variable as Var
+from . import utils
 from . import Constants
 
 
 # module for childsumtreelstm
 class ChildSumTreeLSTM(nn.Module):
-    def __init__(self, in_dim, mem_dim):
+    def __init__(self, in_dim, mem_dim, criterion, vocab_output):
         super(ChildSumTreeLSTM, self).__init__()
         self.in_dim = in_dim
         self.mem_dim = mem_dim
-        self.ioux = nn.Linear(self.in_dim, 3 * self.mem_dim)
-        self.iouh = nn.Linear(self.mem_dim, 3 * self.mem_dim)
-        self.fx = nn.Linear(self.in_dim, self.mem_dim)
+
+        self.ix = nn.Linear(self.in_dim, self.mem_dim)
+        self.ih = nn.Linear(self.mem_dim, self.mem_dim)
+
         self.fh = nn.Linear(self.mem_dim, self.mem_dim)
+        self.fx = nn.Linear(self.in_dim, self.mem_dim)
+
+        self.ux = nn.Linear(self.in_dim, self.mem_dim)
+        self.uh = nn.Linear(self.mem_dim, self.mem_dim)
+
+        self.ox = nn.Linear(self.in_dim, self.mem_dim)
+        self.oh = nn.Linear(self.mem_dim, self.mem_dim)
+
+        self.criterion = criterion
+        self.output_module = None
+        self.vocab_output = vocab_output
+
+    def set_output_module(self, output_module):
+        self.output_module = output_module
 
     def node_forward(self, inputs, child_c, child_h):
-        child_h_sum = torch.sum(child_h, dim=0, keepdim=True)
+        child_h_sum = F.torch.sum(torch.squeeze(child_h, 1), 0)
 
-        iou = self.ioux(inputs) + self.iouh(child_h_sum)
-        i, o, u = torch.split(iou, iou.size(1) // 3, dim=1)
-        i, o, u = F.sigmoid(i), F.sigmoid(o), F.tanh(u)
+        i = F.sigmoid(self.ix(inputs) + self.ih(child_h_sum))
+        o = F.sigmoid(self.ox(inputs) + self.oh(child_h_sum))
+        u = F.tanh(self.ux(inputs) + self.uh(child_h_sum))
 
-        f = F.sigmoid(
-            self.fh(child_h) +
-            self.fx(inputs).repeat(len(child_h), 1)
-        )
-        fc = torch.mul(f, child_c)
+        # add extra singleton dimension
+        fx = F.torch.unsqueeze(self.fx(inputs), 1)
+        f = F.torch.cat([self.fh(child_hi) + fx for child_hi in child_h], 0)
+        f = F.sigmoid(f)
 
-        c = torch.mul(i, u) + torch.sum(fc, dim=0, keepdim=True)
-        h = torch.mul(o, F.tanh(c))
+        fc = F.torch.squeeze(F.torch.mul(f, child_c), 1)
+
+        c = F.torch.mul(i, u) + F.torch.sum(fc, 0)
+        h = F.torch.mul(o, F.tanh(c))
         return c, h
 
-    def forward(self, tree, inputs):
+    def forward(self, tree, inputs, training = False):
+        # loss = Var(torch.zeros(1))  # init zero loss
         for idx in range(tree.num_children):
-            self.forward(tree.children[idx], inputs)
+            self.forward(tree.children[idx], inputs, training)
 
+        child_c, child_h = self.get_child_states(tree)
+        tree.state = self.node_forward(inputs[tree.idx - 1], child_c, child_h) # TREE.IDX veruses TREE.IDX - 1
+        output = self.output_module.forward(tree.state[1], training)
+        return output
+
+    def get_child_states(self, tree):
+        """
+        Get c and h of all children
+        :param tree:
+        :return: (tuple)
+        child_c: (num_children, 1, mem_dim)
+        child_h: (num_children, 1, mem_dim)
+        """
+        # add extra singleton dimension in middle...
+        # because pytorch needs mini batches... :sad:
         if tree.num_children == 0:
-            child_c = inputs[0].detach().new(1, self.mem_dim).fill_(0.).requires_grad_()
-            child_h = inputs[0].detach().new(1, self.mem_dim).fill_(0.).requires_grad_()
+            child_c = Var(torch.zeros(1, 1, self.mem_dim))
+            child_h = Var(torch.zeros(1, 1, self.mem_dim))
         else:
-            child_c, child_h = zip(* map(lambda x: x.state, tree.children))
-            child_c, child_h = torch.cat(child_c, dim=0), torch.cat(child_h, dim=0)
-
-        tree.state = self.node_forward(inputs[tree.idx], child_c, child_h)
-        return tree.state
-
+            child_c = Var(torch.Tensor(tree.num_children, 1, self.mem_dim))
+            child_h = Var(torch.Tensor(tree.num_children, 1, self.mem_dim))
+            for idx in range(tree.num_children):
+                child_c[idx] = tree.children[idx].state[0]
+                child_h[idx] = tree.children[idx].state[1]
+        return child_c, child_h
 
 # module for distance-angle similarity
-class Similarity(nn.Module):
-    def __init__(self, mem_dim, hidden_dim, num_classes):
-        super(Similarity, self).__init__()
+class Classifier(nn.Module):
+    def __init__(self, mem_dim, hidden_dim, num_classes, dropout=False):
+        super(Classifier, self).__init__()
         self.mem_dim = mem_dim
-        self.hidden_dim = hidden_dim
+        self.hidden_dim = hidden_dim # Currently this is never used
         self.num_classes = num_classes
-        self.wh = nn.Linear(self.mem_dim, self.hidden_dim)
-        self.wp = nn.Linear(self.hidden_dim, self.num_classes)
+        self.dropout = dropout
+        # self.wh = nn.Linear(self.mem_dim, self.hidden_dim)
+        # self.wp = nn.Linear(self.hidden_dim, self.num_classes)
+        self.l1 = nn.Linear(self.mem_dim, self.num_classes)
+        self.logsoftmax = nn.LogSoftmax()
 
-    # def forward(self, lvec, rvec):
-    #     mult_dist = torch.mul(lvec, rvec)
-    #     abs_dist = torch.abs(torch.add(lvec, -rvec))
-    #     vec_dist = torch.cat((mult_dist, abs_dist), 1)
-    #
-    #     out = F.sigmoid(self.wh(vec_dist))
-    #     out = F.log_softmax(self.wp(out), dim=1)
-    #     return out
-
-    def forward(self, vec):
-        # mult_dist = torch.mul(lvec, rvec)
-        # abs_dist = torch.abs(torch.add(lvec, -rvec))
-        # vec_dist = torch.cat((mult_dist, abs_dist), 1)
-
-        out = F.sigmoid(self.wh(vec))
-        out = F.log_softmax(self.wp(out), dim=1)
+    def forward(self, vec, training = False):
+        if self.dropout:
+            out = self.logsoftmax(self.l1(F.dropout(vec, training=training)))
+        else:
+            out = self.logsoftmax(self.l1(vec))
         return out
 
 
 # putting the whole model together
-class SimilarityTreeLSTM(nn.Module):
-    def __init__(self, vocab_size, in_dim, mem_dim, hidden_dim, num_classes, sparsity, freeze):
-        super(SimilarityTreeLSTM, self).__init__()
-        self.emb = nn.Embedding(vocab_size, in_dim, padding_idx=Constants.PAD, sparse=sparsity)
-        if freeze:
-            self.emb.weight.requires_grad = False
-        self.childsumtreelstm = ChildSumTreeLSTM(in_dim, mem_dim)
-        self.similarity = Similarity(mem_dim, hidden_dim, num_classes)
+class TreeLSTM(nn.Module):
+    def __init__(self, in_dim, mem_dim, hidden_dim, num_classes, criterion, vocab_output):
+        super(TreeLSTM, self).__init__()
+        self.tree_module = ChildSumTreeLSTM(in_dim, mem_dim, criterion, vocab_output)
+        self.classifier = Classifier(mem_dim, hidden_dim, num_classes)
+        self.tree_module.set_output_module(self.classifier)
 
-    # def forward(self, ltree, linputs, rtree, rinputs):
-    #     linputs = self.emb(linputs)
-    #     rinputs = self.emb(rinputs)
-    #     lstate, lhidden = self.childsumtreelstm(ltree, linputs)
-    #     rstate, rhidden = self.childsumtreelstm(rtree, rinputs)
-    #     output = self.similarity(lstate, rstate)
-    #     return output
-    def forward(self, tree, inputs):
-        inputs = self.emb(inputs)
-        state, hidden = self.childsumtreelstm(tree, inputs)
-        output = self.similarity(state)
+    def forward(self, tree, inputs, training = False):
+        output = self.tree_module(tree, inputs, training)
         return output
