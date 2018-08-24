@@ -16,7 +16,8 @@ class LC_QUAD_Dataset(data.Dataset):
         self.vocab = vocab
         self.num_classes = num_classes
 
-        self.sentences = self.read_sentences(os.path.join(path, 'input.pos'))
+        self.pos_sentences = self.read_sentences(os.path.join(path, 'input.pos'))
+        self.rels_sentences = self.read_sentences(os.path.join(path, 'input.rels'))
         self.trees = self.read_trees(os.path.join(path, 'input.parents'))
 
         self.labels = self.read_labels(os.path.join(path, 'output.txt'))
@@ -27,15 +28,10 @@ class LC_QUAD_Dataset(data.Dataset):
 
     def __getitem__(self, index):
         tree = deepcopy(self.trees[index])
-        sent = deepcopy(self.sentences[index])
+        pos_sent = deepcopy(self.pos_sentences[index])
+        rels_sent = deepcopy(self.rels_sentences[index])
         label = deepcopy(self.labels[index])
-
-        # ltree = deepcopy(self.ltrees[index])
-        # rtree = deepcopy(self.rtrees[index])
-        # lsent = deepcopy(self.lsentences[index])
-        # rsent = deepcopy(self.rsentences[index])
-
-        return (tree, sent, label)
+        return (tree, pos_sent, rels_sent, label)
 
     def read_sentences(self, filename):
         with open(filename, 'r') as f:

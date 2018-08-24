@@ -27,14 +27,20 @@ class Trainer(object):
         total_loss, k = 0.0, 0
         indices = torch.randperm(len(dataset), dtype=torch.long, device='cpu')
         for idx in tqdm(range(len(dataset)), desc='Training epoch ' + str(self.epoch + 1) + ''):
-            tree, input, label = dataset[indices[idx]]
-            input = Var(input)
+            tree, pos_sent, rels_sent, label = dataset[indices[idx]]
+            pos_sent = Var(pos_sent)
+            rels_sent = Var(rels_sent)
+
             target = Var(utils.map_label_to_target(label, dataset.num_classes, self.vocab_output))
 
-            input = input.to(self.device)
+            pos_sent = pos_sent.to(self.device)
+            rels_sent = rels_sent.to(self.device)
             target = target.to(self.device)
 
-            emb = F.torch.unsqueeze(self.embedding_model(input), 1)
+            pos_emb = F.torch.unsqueeze(self.embedding_model(pos_sent), 1)
+            rels_emb = F.torch.unsqueeze(self.embedding_model(rels_sent), 1)
+            emb = pos_emb + rels_emb
+
             output = self.model.forward(tree, emb, training=True)
             err = self.criterion(output, target)
 
@@ -62,14 +68,20 @@ class Trainer(object):
         indices = torch.range(0, dataset.num_classes) # THIS LINE WAS CHANGED FROM 1 to num_classes + 1 to 0 and num_classes
 
         for idx in tqdm(range(len(dataset)), desc='Testing epoch  ' + str(self.epoch) + ''):
-            tree, sent, label = dataset[idx]
-            input = Var(sent, volatile=True)
+            tree, pos_sent, rels_sent, label = dataset[idx]
+            pos_sent = Var(pos_sent, volatile = True)
+            rels_sent = Var(rels_sent, volatile = True)
+
             target = utils.map_label_to_target(label, dataset.num_classes, self.vocab_output)
 
-            input = input.to(self.device)
+            pos_sent = pos_sent.to(self.device)
+            rels_sent = rels_sent.to(self.device)
             target = target.to(self.device)
 
-            emb = F.torch.unsqueeze(self.embedding_model(input), 1)
+            pos_emb = F.torch.unsqueeze(self.embedding_model(pos_sent), 1)
+            rels_emb = F.torch.unsqueeze(self.embedding_model(rels_sent), 1)
+            emb = torch.mul(pos_emb, rels_emb)
+
             output = self.model.forward(tree, emb, training=True)
             err = self.criterion(output, target)
             total_loss += err.data[0]

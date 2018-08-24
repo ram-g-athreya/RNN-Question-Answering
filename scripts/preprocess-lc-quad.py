@@ -97,7 +97,8 @@ if __name__ == '__main__':
 
     # Build Vocabulary for input
     build_vocab(
-        glob.glob(os.path.join(lc_quad_dir, '*/*.pos')),
+        glob.glob(os.path.join(lc_quad_dir, '*/*.pos')) + glob.glob(os.path.join(lc_quad_dir, '*/*.rels')), # All POS and RELS files
+        # glob.glob([os.path.join(lc_quad_dir, '*/*.pos'), os.path.join(lc_quad_dir, '*/*.rels')]),
         os.path.join(lc_quad_dir, 'vocab.txt'))
 
     # Build Vocabulary for output
