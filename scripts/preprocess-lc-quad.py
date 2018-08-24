@@ -18,9 +18,11 @@ def dependency_parse(filepath, cp='', tokenize=True):
     tokpath = os.path.join(dirpath, filepre + '.toks')
     parentpath = os.path.join(dirpath, filepre + '.parents')
     relpath = os.path.join(dirpath, filepre + '.rels')
+    pospath = os.path.join(dirpath, filepre + '.pos')
     tokenize_flag = '-tokenize - ' if tokenize else ''
-    cmd = ('java -cp %s DependencyParse -tokpath %s -parentpath %s -relpath %s %s < %s'
-           % (cp, tokpath, parentpath, relpath, tokenize_flag, filepath))
+    cmd = ('java -cp %s DependencyParse -tokpath %s -parentpath %s -relpath %s -pospath %s %s < %s'
+           % (cp, tokpath, parentpath, relpath, pospath, tokenize_flag, filepath))
+    print(cmd)
     os.system(cmd)
 
 
@@ -35,7 +37,7 @@ def constituency_parse(filepath, cp='', tokenize=True):
     os.system(cmd)
 
 
-def build_vocab(filepaths, dst_path, lowercase=True):
+def build_vocab(filepaths, dst_path, lowercase=False):
     vocab = set()
     for filepath in filepaths:
         with open(filepath) as f:
@@ -62,7 +64,7 @@ def split(filepath, dst_dir):
 
 def parse(dirpath, cp=''):
     dependency_parse(os.path.join(dirpath, 'input.txt'), cp=cp, tokenize=True)
-    constituency_parse(os.path.join(dirpath, 'input.txt'), cp=cp, tokenize=True)
+    # constituency_parse(os.path.join(dirpath, 'input.txt'), cp=cp, tokenize=True)
 
 
 if __name__ == '__main__':
@@ -95,7 +97,7 @@ if __name__ == '__main__':
 
     # Build Vocabulary for input
     build_vocab(
-        glob.glob(os.path.join(lc_quad_dir, '*/*.rels')),
+        glob.glob(os.path.join(lc_quad_dir, '*/*.pos')),
         os.path.join(lc_quad_dir, 'vocab.txt'))
 
     # Build Vocabulary for output

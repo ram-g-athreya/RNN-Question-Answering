@@ -26,9 +26,10 @@ public class DependencyParse {
     Properties props = StringUtils.argsToProperties(args);
     if (!props.containsKey("tokpath") ||
         !props.containsKey("parentpath") ||
-        !props.containsKey("relpath")) {
+        !props.containsKey("relpath") ||
+        !props.containsKey("pospath")) {
       System.err.println(
-        "usage: java DependencyParse -tokenize - -tokpath <tokpath> -parentpath <parentpath> -relpath <relpath>");
+        "usage: java DependencyParse -tokenize - -tokpath <tokpath> -parentpath <parentpath> -relpath <relpath> -pospath <pospath>");
       System.exit(1);
     }
 
@@ -40,10 +41,12 @@ public class DependencyParse {
     String tokPath = props.getProperty("tokpath");
     String parentPath = props.getProperty("parentpath");
     String relPath = props.getProperty("relpath");
+    String posPath = props.getProperty("pospath");
 
     BufferedWriter tokWriter = new BufferedWriter(new FileWriter(tokPath));
     BufferedWriter parentWriter = new BufferedWriter(new FileWriter(parentPath));
     BufferedWriter relWriter = new BufferedWriter(new FileWriter(relPath));
+    BufferedWriter posWriter = new BufferedWriter(new FileWriter(posPath));
 
     MaxentTagger tagger = new MaxentTagger(TAGGER_MODEL);
     DependencyParser parser = DependencyParser.loadFromModelFile(PARSER_MODEL);
@@ -123,6 +126,16 @@ public class DependencyParse {
       sb.append('\n');
       relWriter.write(sb.toString());
 
+      // print pos
+      sb = new StringBuilder();
+      for (int i = 0; i < len - 1; i++) {
+        sb.append(tagged.get(i).tag());
+        sb.append(' ');
+      }
+      sb.append(tagged.get(len - 1).tag());
+      sb.append('\n');
+      posWriter.write(sb.toString());
+
       count++;
       if (count % 1000 == 0) {
         double elapsed = (System.currentTimeMillis() - start) / 1000.0;
@@ -136,5 +149,6 @@ public class DependencyParse {
     tokWriter.close();
     parentWriter.close();
     relWriter.close();
+    posWriter.close();
   }
 }

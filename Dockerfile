@@ -1,6 +1,6 @@
 FROM ubuntu:16.04
 
-MAINTAINER Riddhiman Dasgupta <riddhiman.dasgupta@gmail.com>
+MAINTAINER RAM G ATHREYA <ramgathreya@gmail.com>
 
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends git curl wget ca-certificates bzip2 unzip openjdk-8-jdk-headless

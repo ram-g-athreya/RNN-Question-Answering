@@ -16,14 +16,8 @@ class LC_QUAD_Dataset(data.Dataset):
         self.vocab = vocab
         self.num_classes = num_classes
 
-        self.sentences = self.read_sentences(os.path.join(path, 'input.rels'))
+        self.sentences = self.read_sentences(os.path.join(path, 'input.pos'))
         self.trees = self.read_trees(os.path.join(path, 'input.parents'))
-
-        # self.lsentences = self.read_sentences(os.path.join(path, 'a.toks'))
-        # self.rsentences = self.read_sentences(os.path.join(path, 'b.toks'))
-        #
-        # self.ltrees = self.read_trees(os.path.join(path, 'a.parents'))
-        # self.rtrees = self.read_trees(os.path.join(path, 'b.parents'))
 
         self.labels = self.read_labels(os.path.join(path, 'output.txt'))
         self.size = self.labels.size(0)
