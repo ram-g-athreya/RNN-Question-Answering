@@ -68,9 +68,10 @@ class Trainer(object):
         indices = torch.range(0, dataset.num_classes) # THIS LINE WAS CHANGED FROM 1 to num_classes + 1 to 0 and num_classes
 
         for idx in tqdm(range(len(dataset)), desc='Testing epoch  ' + str(self.epoch) + ''):
+            torch.no_grad()
             tree, pos_sent, rels_sent, label = dataset[idx]
-            pos_sent = Var(pos_sent, volatile = True)
-            rels_sent = Var(rels_sent, volatile = True)
+            pos_sent = Var(pos_sent)
+            rels_sent = Var(rels_sent)
 
             target = utils.map_label_to_target(label, dataset.num_classes, self.vocab_output)
 
@@ -89,11 +90,4 @@ class Trainer(object):
             val, pred = torch.max(output, 1)
 
             predictions[idx] = pred.data.cpu()[0]
-
-            # output = self.model(tree, input)
-            # m = nn.LogSoftmax()
-            # _, pred = torch.max(output.data, 1)
-            # loss = self.criterion(m(output), target)
-            # total_loss += loss.item()
-            # predictions[idx] = pred
         return total_loss / len(dataset), predictions

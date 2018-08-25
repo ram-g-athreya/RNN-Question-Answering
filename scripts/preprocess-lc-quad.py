@@ -2,9 +2,13 @@
 Preprocessing script for LC-QUAD data.
 """
 
-import os
 import glob
 import json
+import os
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
 
 def make_dirs(dirs):
     for d in dirs:
@@ -62,10 +66,22 @@ def split(filepath, dst_dir):
             inputfile.write(datum["corrected_question"] + "\n")
             outputfile.write(str(datum["sparql_template_id"]) + "\n")
 
+
+def split_data(X, y, dst_dir):
+    with open(os.path.join(dst_dir, 'id.txt'), 'w') as idfile, \
+            open(os.path.join(dst_dir, 'input.txt'), 'w') as inputfile, \
+            open(os.path.join(dst_dir, 'output.txt'), 'w') as outputfile:
+        y = y.tolist()
+
+        for index in range(len(X)):
+            idfile.write(str(X.iloc[index]["_id"]) + "\n")
+            inputfile.write(str(X.iloc[index]["corrected_question"]) + "\n")
+            outputfile.write(str(y[index]) + "\n")
+
+
 def parse(dirpath, cp=''):
     dependency_parse(os.path.join(dirpath, 'input.txt'), cp=cp, tokenize=True)
     # constituency_parse(os.path.join(dirpath, 'input.txt'), cp=cp, tokenize=True)
-
 
 if __name__ == '__main__':
     print('=' * 80)
@@ -87,9 +103,22 @@ if __name__ == '__main__':
         os.path.join(lib_dir, 'stanford-parser/stanford-parser.jar'),
         os.path.join(lib_dir, 'stanford-parser/stanford-parser-3.9.1-models.jar')])
 
+    # Load Data
+    df_train = pd.read_json(os.path.join(lc_quad_dir, "train-data.json"))
+    df_test = pd.read_json(os.path.join(lc_quad_dir, "test-data.json"))
+    df = pd.concat([df_train, df_test], ignore_index = True)
+
+    X = df.loc[:, df.columns != 'sparql_template_id']
+    y = df['sparql_template_id']
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
+
+    split_data(X_train, y_train, train_dir)
+    split_data(X_test, y_test, test_dir)
+
     # split into separate files
-    split(os.path.join(lc_quad_dir, 'train-data.json'), train_dir)
-    split(os.path.join(lc_quad_dir, 'test-data.json'), test_dir)
+    # split(os.path.join(lc_quad_dir, 'train-data.json'), train_dir)
+    # split(os.path.join(lc_quad_dir, 'test-data.json'), test_dir)
 
     # parse sentences
     parse(train_dir, cp=classpath)
@@ -98,7 +127,6 @@ if __name__ == '__main__':
     # Build Vocabulary for input
     build_vocab(
         glob.glob(os.path.join(lc_quad_dir, '*/*.pos')) + glob.glob(os.path.join(lc_quad_dir, '*/*.rels')), # All POS and RELS files
-        # glob.glob([os.path.join(lc_quad_dir, '*/*.pos'), os.path.join(lc_quad_dir, '*/*.rels')]),
         os.path.join(lc_quad_dir, 'vocab.txt'))
 
     # Build Vocabulary for output

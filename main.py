@@ -121,7 +121,7 @@ def main():
             if glove_vocab.getIndex(word):
                 emb[vocab.getIndex(word)] = glove_emb[glove_vocab.getIndex(word)]
             else:
-                emb[vocab.getIndex(word)] = torch.Tensor(emb[vocab.getIndex(word)].size()).normal_(-0.05, 0.05)
+                emb[vocab.getIndex(word)] = torch.Tensor(args.input_dim).uniform_(-1, 1)
 
         torch.save(emb, emb_file)
     # plug these into embedding matrix inside model
