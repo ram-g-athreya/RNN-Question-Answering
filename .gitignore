@@ -8,3 +8,4 @@ lib/stanford-tagger
 .vscode/
 .ipynb_checkpoints/
 analysis
+.word_vectors_cache

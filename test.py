@@ -1,12 +1,9 @@
-import torch
-import csv
 
-with open("analysis/t.csv", "w") as csv_file:
-    writer = csv.writer(csv_file)
-    x = torch.Tensor([1, 2, 3])
-    y = x.numpy()
 
-    a = torch.Tensor([4, 5, 6])
-    b = a.numpy()
+import torch, os
+data_dir = 'data/lc-quad'
+train_dir = os.path.join(data_dir, 'train/')
+train_file = os.path.join(data_dir, 'pth/lc_quad_train.pth')
 
-    writer.writerows(zip(y, b))
+dataset = torch.load(train_file)
+print(dataset)

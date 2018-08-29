@@ -17,10 +17,6 @@ def parse_args():
                         help='Size of input word vector')
     parser.add_argument('--mem_dim', default=150, type=int,
                         help='Size of TreeLSTM cell state')
-    parser.add_argument('--hidden_dim', default=50, type=int,
-                        help='Size of classifier MLP')
-    parser.add_argument('--num_classes', default=38, type=int,
-                        help='Number of classes in dataset')
     parser.add_argument('--freeze_embed', action='store_true',
                         help='Freeze word embeddings')
     # training arguments
@@ -28,16 +24,16 @@ def parse_args():
                         help='number of total epochs to run')
     parser.add_argument('--batchsize', default=25, type=int,
                         help='batchsize for optimizer updates')
-    parser.add_argument('--lr', default=0.01, type=float,
+    parser.add_argument('--lr', default=1e-2, type=float,
                         metavar='LR', help='initial learning rate')
     parser.add_argument('--wd', default=1e-4, type=float,
                         help='weight decay (default: 1e-4)')
-    parser.add_argument('--emblr', default=0.1, type=float,
+    parser.add_argument('--emblr', default=1e-2, type=float,
                         metavar='EMLR', help='initial embedding learning rate')
     parser.add_argument('--sparse', action='store_true',
                         help='Enable sparsity for embeddings, \
                               incompatible with weight decay')
-    parser.add_argument('--optim', default='adam',
+    parser.add_argument('--optim', default='adagrad',
                         help='optimizer (default: adam)')
     # miscellaneous options
     parser.add_argument('--seed', default=123, type=int,

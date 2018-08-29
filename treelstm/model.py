@@ -5,7 +5,6 @@ from torch.autograd import Variable as Var
 from . import utils
 from . import Constants
 
-
 # module for childsumtreelstm
 class ChildSumTreeLSTM(nn.Module):
     def __init__(self, in_dim, mem_dim, criterion, vocab_output):
@@ -56,7 +55,7 @@ class ChildSumTreeLSTM(nn.Module):
             self.forward(tree.children[idx], inputs, training)
 
         child_c, child_h = self.get_child_states(tree)
-        tree.state = self.node_forward(inputs[tree.idx - 1], child_c, child_h) # TREE.IDX veruses TREE.IDX - 1
+        tree.state = self.node_forward(inputs[tree.idx], child_c, child_h) # TREE.IDX veruses TREE.IDX - 1
         output = self.output_module.forward(tree.state[1], training)
         return output
 
@@ -68,8 +67,6 @@ class ChildSumTreeLSTM(nn.Module):
         child_c: (num_children, 1, mem_dim)
         child_h: (num_children, 1, mem_dim)
         """
-        # add extra singleton dimension in middle...
-        # because pytorch needs mini batches... :sad:
         if tree.num_children == 0:
             child_c = Var(torch.zeros(1, 1, self.mem_dim))
             child_h = Var(torch.zeros(1, 1, self.mem_dim))
@@ -81,18 +78,14 @@ class ChildSumTreeLSTM(nn.Module):
                 child_h[idx] = tree.children[idx].state[1]
         return child_c, child_h
 
-# module for distance-angle similarity
 class Classifier(nn.Module):
-    def __init__(self, mem_dim, hidden_dim, num_classes, dropout=False):
+    def __init__(self, mem_dim, num_classes, dropout=True):
         super(Classifier, self).__init__()
         self.mem_dim = mem_dim
-        self.hidden_dim = hidden_dim # Currently this is never used
         self.num_classes = num_classes
         self.dropout = dropout
-        # self.wh = nn.Linear(self.mem_dim, self.hidden_dim)
-        # self.wp = nn.Linear(self.hidden_dim, self.num_classes)
         self.l1 = nn.Linear(self.mem_dim, self.num_classes)
-        self.logsoftmax = nn.LogSoftmax()
+        self.logsoftmax = nn.LogSoftmax(dim=1)
 
     def forward(self, vec, training = False):
         if self.dropout:
@@ -101,13 +94,12 @@ class Classifier(nn.Module):
             out = self.logsoftmax(self.l1(vec))
         return out
 
-
 # putting the whole model together
 class TreeLSTM(nn.Module):
-    def __init__(self, in_dim, mem_dim, hidden_dim, num_classes, criterion, vocab_output):
+    def __init__(self, in_dim, mem_dim, num_classes, criterion, vocab_output):
         super(TreeLSTM, self).__init__()
         self.tree_module = ChildSumTreeLSTM(in_dim, mem_dim, criterion, vocab_output)
-        self.classifier = Classifier(mem_dim, hidden_dim, num_classes)
+        self.classifier = Classifier(mem_dim, num_classes)
         self.tree_module.set_output_module(self.classifier)
 
     def forward(self, tree, inputs, training = False):

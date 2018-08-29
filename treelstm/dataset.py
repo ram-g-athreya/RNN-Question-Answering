@@ -8,7 +8,6 @@ import torch.utils.data as data
 from . import Constants
 from .tree import Tree
 
-
 # Dataset class for SICK dataset
 class LC_QUAD_Dataset(data.Dataset):
     def __init__(self, path, vocab, num_classes):

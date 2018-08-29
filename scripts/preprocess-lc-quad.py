@@ -9,7 +9,6 @@ import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-
 def make_dirs(dirs):
     for d in dirs:
         if not os.path.exists(d):
@@ -81,7 +80,7 @@ def split_data(X, y, dst_dir):
 
 def parse(dirpath, cp=''):
     dependency_parse(os.path.join(dirpath, 'input.txt'), cp=cp, tokenize=True)
-    # constituency_parse(os.path.join(dirpath, 'input.txt'), cp=cp, tokenize=True)
+    constituency_parse(os.path.join(dirpath, 'input.txt'), cp=cp, tokenize=True)
 
 if __name__ == '__main__':
     print('=' * 80)
@@ -107,6 +106,18 @@ if __name__ == '__main__':
     df_train = pd.read_json(os.path.join(lc_quad_dir, "train-data.json"))
     df_test = pd.read_json(os.path.join(lc_quad_dir, "test-data.json"))
     df = pd.concat([df_train, df_test], ignore_index = True)
+
+    # Only consider 80% of the dataset
+    sum = 0
+    index = 0
+    columns = df['sparql_template_id'].value_counts(normalize=True)
+    for percent in columns:
+        sum += percent
+        index += 1
+        if sum >= 0.8:
+            break
+
+    df = df[df['sparql_template_id'].isin(columns.index[:index].tolist())]
 
     X = df.loc[:, df.columns != 'sparql_template_id']
     y = df['sparql_template_id']

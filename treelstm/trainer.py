@@ -39,13 +39,13 @@ class Trainer(object):
 
             pos_emb = F.torch.unsqueeze(self.embedding_model(pos_sent), 1)
             rels_emb = F.torch.unsqueeze(self.embedding_model(rels_sent), 1)
-            emb = pos_emb + rels_emb
+            emb = torch.add(pos_emb, rels_emb)
 
             output = self.model.forward(tree, emb, training=True)
             err = self.criterion(output, target)
 
             err = err / self.args.batchsize
-            total_loss += err.data[0]
+            total_loss += err.item()
             err.backward()
             k += 1
 
@@ -65,7 +65,6 @@ class Trainer(object):
         self.embedding_model.eval()
         total_loss = 0
         predictions = torch.zeros(len(dataset))
-        indices = torch.range(0, dataset.num_classes) # THIS LINE WAS CHANGED FROM 1 to num_classes + 1 to 0 and num_classes
 
         for idx in tqdm(range(len(dataset)), desc='Testing epoch  ' + str(self.epoch) + ''):
             torch.no_grad()
@@ -81,13 +80,13 @@ class Trainer(object):
 
             pos_emb = F.torch.unsqueeze(self.embedding_model(pos_sent), 1)
             rels_emb = F.torch.unsqueeze(self.embedding_model(rels_sent), 1)
-            emb = torch.mul(pos_emb, rels_emb)
+            emb = torch.add(pos_emb, rels_emb)
 
             output = self.model.forward(tree, emb, training=True)
             err = self.criterion(output, target)
-            total_loss += err.data[0]
+            total_loss += err.item()
 
-            val, pred = torch.max(output, 1)
+            _, pred = torch.max(output, 1)
 
             predictions[idx] = pred.data.cpu()[0]
         return total_loss / len(dataset), predictions

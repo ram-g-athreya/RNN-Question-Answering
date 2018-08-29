@@ -28,6 +28,7 @@ from treelstm import Trainer
 # CONFIG PARSER
 from config import parse_args
 
+from fastText import load_model
 
 # MAIN BLOCK
 def main():
@@ -66,11 +67,12 @@ def main():
     test_dir = os.path.join(args.data, 'test/')
 
     # get vocab object from vocab file previously written
-    vocab = Vocab(filename=os.path.join(args.data, 'vocab.txt'),
-                  data=[Constants.PAD_WORD, Constants.UNK_WORD,
-                        Constants.BOS_WORD, Constants.EOS_WORD])
-
+    vocab = Vocab(filename=os.path.join(args.data, 'vocab.txt'))
     vocab_output = Vocab(filename=os.path.join(args.data, 'vocab_output.txt'))
+
+    # Set number of classes based on vocab_output
+    args.num_classes = vocab_output.size()
+
     logger.debug('==> LC-QUAD vocabulary size : %d ' % vocab.size())
     logger.debug('==> LC-QUAD output vocabulary size : %d ' % vocab_output.size())
 
@@ -92,11 +94,12 @@ def main():
     logger.debug('==> Size of test data    : %d ' % len(test_dataset))
 
     criterion = nn.NLLLoss()
+
+    args.input_dim = vocab.size()
     # initialize model, criterion/loss_function, optimizer
     model = TreeLSTM(
         args.input_dim,
         args.mem_dim,
-        args.hidden_dim,
         args.num_classes,
         criterion,
         vocab_output
@@ -108,22 +111,33 @@ def main():
         emb = torch.load(emb_file)
     else:
         # load glove embeddings and vocab
-        glove_vocab, glove_emb = utils.load_word_vectors(
-            os.path.join(args.glove, 'glove.840B.300d'))
-        logger.debug('==> GLOVE vocabulary size: %d ' % glove_vocab.size())
-        emb = torch.zeros(vocab.size(), glove_emb.size(1), dtype=torch.float, device=device)
+        # glove_vocab, glove_emb = utils.load_word_vectors(
+        #     os.path.join(args.glove, 'glove.840B.300d'))
+        # logger.debug('==> GLOVE vocabulary size: %d ' % glove_vocab.size())
 
-        # zero out the embeddings for padding and other special words if they are absent in vocab
-        for idx, item in enumerate([Constants.PAD_WORD, Constants.UNK_WORD,
-                                    Constants.BOS_WORD, Constants.EOS_WORD]):
-            emb[idx].zero_()
+        emb = torch.zeros(vocab.size(), args.input_dim, dtype=torch.float, device=device)
+        # fasttext_model = load_model("data/fasttext/wiki.en.bin")
+
         for word in vocab.labelToIdx.keys():
-            if glove_vocab.getIndex(word):
-                emb[vocab.getIndex(word)] = glove_emb[glove_vocab.getIndex(word)]
-            else:
-                emb[vocab.getIndex(word)] = torch.Tensor(args.input_dim).uniform_(-1, 1)
+            word_index = vocab.getIndex(word)
+            word_vector = torch.zeros(1, args.input_dim)
+            word_vector[0, word_index] = 1
+            emb[word_index] = word_vector
 
-        torch.save(emb, emb_file)
+
+            # word_vector = fasttext_model.get_word_vector(word)
+            # if word_vector.all() != None and len(word_vector) == args.input_dim:
+            #     emb[vocab.getIndex(word)] = torch.Tensor(word_vector)
+            # else:
+            #     emb[vocab.getIndex(word)] = torch.Tensor(args.input_dim).uniform_(-1, 1)
+            #     print("WORD VECTOR NOT FOUND FOR: ", word)
+
+            # if glove_vocab.getIndex(word):
+            #     emb[vocab.getIndex(word)] = glove_emb[glove_vocab.getIndex(word)]
+            # else:
+            #     emb[vocab.getIndex(word)] = torch.Tensor(args.input_dim).uniform_(-1, 1)
+
+    torch.save(emb, emb_file)
     # plug these into embedding matrix inside model
     # model.emb.weight.data.copy_(emb)
     embedding_model.state_dict()['weight'].copy_(emb)
@@ -133,8 +147,9 @@ def main():
         optimizer = optim.Adam(filter(lambda p: p.requires_grad,
                                       model.parameters()), lr=args.lr, weight_decay=args.wd)
     elif args.optim == 'adagrad':
-        optimizer = optim.Adagrad(filter(lambda p: p.requires_grad,
-                                         model.parameters()), lr=args.lr, weight_decay=args.wd)
+        optimizer = optim.Adagrad([
+                {'params': model.parameters(), 'lr': args.lr}
+            ], lr=args.lr, weight_decay=args.wd)
     elif args.optim == 'sgd':
         optimizer = optim.SGD(filter(lambda p: p.requires_grad,
                                      model.parameters()), lr=args.lr, weight_decay=args.wd)
