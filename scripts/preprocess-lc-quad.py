@@ -80,7 +80,7 @@ def split_data(X, y, dst_dir):
 
 def parse(dirpath, cp=''):
     dependency_parse(os.path.join(dirpath, 'input.txt'), cp=cp, tokenize=True)
-    constituency_parse(os.path.join(dirpath, 'input.txt'), cp=cp, tokenize=True)
+    # constituency_parse(os.path.join(dirpath, 'input.txt'), cp=cp, tokenize=True)
 
 if __name__ == '__main__':
     print('=' * 80)
@@ -108,19 +108,33 @@ if __name__ == '__main__':
     df = pd.concat([df_train, df_test], ignore_index = True)
 
     # Only consider 80% of the dataset
-    sum = 0
-    index = 0
-    columns = df['sparql_template_id'].value_counts(normalize=True)
-    for percent in columns:
-        sum += percent
-        index += 1
-        if sum >= 0.8:
-            break
-
-    df = df[df['sparql_template_id'].isin(columns.index[:index].tolist())]
+    # sum = 0
+    # index = 0
+    # columns = df['sparql_template_id'].value_counts(normalize=True)
+    # for percent in columns:
+    #     sum += percent
+    #     index += 1
+    #     if sum >= 0.8:
+    #         break
+    #
+    # df = df[df['sparql_template_id'].isin(columns.index[:7].tolist())]
 
     X = df.loc[:, df.columns != 'sparql_template_id']
-    y = df['sparql_template_id']
+    y = df['sparql_template_id'].tolist()
+
+    for index in range(len(y)):
+        id = y[index]
+        if id >= 300 and id < 500: # Collapse 3xx or 4xx templates to their corresponding template - 300 id since all that differentiates them is extra rdf:type class triple which can be added as an optional triple to SPARQL Query
+            y[index] = id - 300
+        elif id == 152: # Effectively Template 152 and Template 151 are the same template or can be converted into single SPARQL Query
+            y[index] = 151
+
+        # Because they have very similar but inverted structures
+        if y[index] == 2:
+            y[index] = 1
+
+    y = pd.Series(y)
+    print(y.unique(), len(y.unique()))
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
 

@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('--sparse', action='store_true',
                         help='Enable sparsity for embeddings, \
                               incompatible with weight decay')
-    parser.add_argument('--optim', default='adagrad',
+    parser.add_argument('--optim', default='adam',
                         help='optimizer (default: adam)')
     # miscellaneous options
     parser.add_argument('--seed', default=123, type=int,

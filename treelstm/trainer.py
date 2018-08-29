@@ -39,7 +39,7 @@ class Trainer(object):
 
             pos_emb = F.torch.unsqueeze(self.embedding_model(pos_sent), 1)
             rels_emb = F.torch.unsqueeze(self.embedding_model(rels_sent), 1)
-            emb = torch.add(pos_emb, rels_emb)
+            emb = torch.cat((pos_emb, rels_emb), 2)
 
             output = self.model.forward(tree, emb, training=True)
             err = self.criterion(output, target)
@@ -80,7 +80,7 @@ class Trainer(object):
 
             pos_emb = F.torch.unsqueeze(self.embedding_model(pos_sent), 1)
             rels_emb = F.torch.unsqueeze(self.embedding_model(rels_sent), 1)
-            emb = torch.add(pos_emb, rels_emb)
+            emb = torch.cat((pos_emb, rels_emb), 2)
 
             output = self.model.forward(tree, emb, training=True)
             err = self.criterion(output, target)

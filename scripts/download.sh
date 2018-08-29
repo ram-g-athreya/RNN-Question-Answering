@@ -6,6 +6,9 @@ mkdir -p data/lc-quad
 cd data/lc-quad/
 wget -q -c https://raw.githubusercontent.com/AskNowQA/LC-QuAD/data/train-data.json
 wget -q -c https://raw.githubusercontent.com/AskNowQA/LC-QuAD/data/test-data.json
+
+echo "Download LC-QUAD Template Metadata"
+wget -q -c https://raw.githubusercontent.com/AskNowQA/LC-QuAD/data/resources/templates.json
 cd ../../
 
 echo "Downloading Stanford parser and tagger"

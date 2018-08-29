@@ -9,7 +9,7 @@ from . import Constants
 class ChildSumTreeLSTM(nn.Module):
     def __init__(self, in_dim, mem_dim, criterion, vocab_output):
         super(ChildSumTreeLSTM, self).__init__()
-        self.in_dim = in_dim
+        self.in_dim = in_dim * 2
         self.mem_dim = mem_dim
 
         self.ix = nn.Linear(self.in_dim, self.mem_dim)
@@ -79,7 +79,7 @@ class ChildSumTreeLSTM(nn.Module):
         return child_c, child_h
 
 class Classifier(nn.Module):
-    def __init__(self, mem_dim, num_classes, dropout=True):
+    def __init__(self, mem_dim, num_classes, dropout=False):
         super(Classifier, self).__init__()
         self.mem_dim = mem_dim
         self.num_classes = num_classes
