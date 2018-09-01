@@ -8,15 +8,18 @@ import torch.utils.data as data
 from . import Constants
 from .tree import Tree
 
+import nltk
+
 # Dataset class for SICK dataset
 class LC_QUAD_Dataset(data.Dataset):
-    def __init__(self, path, vocab, num_classes):
+    def __init__(self, path, vocab_pos, vocab_rels, num_classes):
         super(LC_QUAD_Dataset, self).__init__()
-        self.vocab = vocab
+        self.vocab_pos = vocab_pos
+        self.vocab_rels = vocab_rels
         self.num_classes = num_classes
 
-        self.pos_sentences = self.read_sentences(os.path.join(path, 'input.pos'))
-        self.rels_sentences = self.read_sentences(os.path.join(path, 'input.rels'))
+        self.pos_sentences, self.aug_vector = self.read_sentences(os.path.join(path, 'input.pos'), self.vocab_pos, True)
+        self.rels_sentences, _ = self.read_sentences(os.path.join(path, 'input.rels'), self.vocab_rels)
         self.trees = self.read_trees(os.path.join(path, 'input.parents'))
 
         self.labels = self.read_labels(os.path.join(path, 'output.txt'))
@@ -29,16 +32,29 @@ class LC_QUAD_Dataset(data.Dataset):
         tree = deepcopy(self.trees[index])
         pos_sent = deepcopy(self.pos_sentences[index])
         rels_sent = deepcopy(self.rels_sentences[index])
+        aug_vector = deepcopy(self.aug_vector[index])
         label = deepcopy(self.labels[index])
-        return (tree, pos_sent, rels_sent, label)
+        return (tree, pos_sent, rels_sent, aug_vector, label)
 
-    def read_sentences(self, filename):
+    def read_sentences(self, filename, vocab, pos=False):
         with open(filename, 'r') as f:
-            sentences = [self.read_sentence(line) for line in tqdm(f.readlines())]
-        return sentences
+            sentences = []
+            aug_vector = []
 
-    def read_sentence(self, line):
-        indices = self.vocab.convertToIdx(line.split(), Constants.UNK_WORD)
+            for line in tqdm(f.readlines()):
+                split_line = line.split()
+                sentences.append(self.read_sentence(split_line, vocab))
+
+                if pos is True:
+                    freq = nltk.FreqDist(split_line)
+                    length = len(split_line)
+                    # aug_vector.append(torch.tensor([ [ freq['IN']/length ]  ]))
+                    aug_vector.append(freq['IN'] / length)
+
+        return sentences, aug_vector
+
+    def read_sentence(self, line, vocab):
+        indices = vocab.convertToIdx(line, Constants.UNK_WORD)
         return torch.tensor(indices, dtype=torch.long, device='cpu')
 
     def read_trees(self, filename):

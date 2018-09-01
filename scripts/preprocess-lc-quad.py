@@ -22,9 +22,10 @@ def dependency_parse(filepath, cp='', tokenize=True):
     parentpath = os.path.join(dirpath, filepre + '.parents')
     relpath = os.path.join(dirpath, filepre + '.rels')
     pospath = os.path.join(dirpath, filepre + '.pos')
+    lenpath = os.path.join(dirpath, filepre + '.len')
     tokenize_flag = '-tokenize - ' if tokenize else ''
-    cmd = ('java -cp %s DependencyParse -tokpath %s -parentpath %s -relpath %s -pospath %s %s < %s'
-           % (cp, tokpath, parentpath, relpath, pospath, tokenize_flag, filepath))
+    cmd = ('java -cp %s DependencyParse -tokpath %s -parentpath %s -relpath %s -pospath %s -lenpath %s %s < %s'
+           % (cp, tokpath, parentpath, relpath, pospath, lenpath, tokenize_flag, filepath))
     print(cmd)
     os.system(cmd)
 
@@ -73,8 +74,10 @@ def split_data(X, y, dst_dir):
         y = y.tolist()
 
         for index in range(len(X)):
+            corrected_question = str(X.iloc[index]["corrected_question"])
+            # corrected_question = str(X.iloc[index]["corrected_question"]).replace('(', '').replace(')', '')
             idfile.write(str(X.iloc[index]["_id"]) + "\n")
-            inputfile.write(str(X.iloc[index]["corrected_question"]) + "\n")
+            inputfile.write(corrected_question + "\n")
             outputfile.write(str(y[index]) + "\n")
 
 
@@ -107,18 +110,6 @@ if __name__ == '__main__':
     df_test = pd.read_json(os.path.join(lc_quad_dir, "test-data.json"))
     df = pd.concat([df_train, df_test], ignore_index = True)
 
-    # Only consider 80% of the dataset
-    # sum = 0
-    # index = 0
-    # columns = df['sparql_template_id'].value_counts(normalize=True)
-    # for percent in columns:
-    #     sum += percent
-    #     index += 1
-    #     if sum >= 0.8:
-    #         break
-    #
-    # df = df[df['sparql_template_id'].isin(columns.index[:7].tolist())]
-
     X = df.loc[:, df.columns != 'sparql_template_id']
     y = df['sparql_template_id'].tolist()
 
@@ -132,18 +123,22 @@ if __name__ == '__main__':
         # Because they have very similar but inverted structures
         if y[index] == 2:
             y[index] = 1
+        elif y[index] == 106:
+            y[index] = 105
+        elif y[index] == 5:
+            y[index] = 3
 
     y = pd.Series(y)
-    print(y.unique(), len(y.unique()))
+    print(y.value_counts(normalize=True))
+
+    df_combined = X
+    df_combined['sparql_template_id'] = y
+    df.to_csv(os.path.join(lc_quad_dir, 'dataset.csv'), index=False)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
 
     split_data(X_train, y_train, train_dir)
     split_data(X_test, y_test, test_dir)
-
-    # split into separate files
-    # split(os.path.join(lc_quad_dir, 'train-data.json'), train_dir)
-    # split(os.path.join(lc_quad_dir, 'test-data.json'), test_dir)
 
     # parse sentences
     parse(train_dir, cp=classpath)
@@ -151,8 +146,13 @@ if __name__ == '__main__':
 
     # Build Vocabulary for input
     build_vocab(
-        glob.glob(os.path.join(lc_quad_dir, '*/*.pos')) + glob.glob(os.path.join(lc_quad_dir, '*/*.rels')), # All POS and RELS files
-        os.path.join(lc_quad_dir, 'vocab.txt'))
+        glob.glob(os.path.join(lc_quad_dir, '*/*.pos')), # All POS and RELS files
+        os.path.join(lc_quad_dir, 'vocab_pos.txt'))
+
+    build_vocab(
+        glob.glob(os.path.join(lc_quad_dir, '*/*.rels')),
+        # All POS and RELS files
+        os.path.join(lc_quad_dir, 'vocab_rels.txt'))
 
     # Build Vocabulary for output
     build_vocab(

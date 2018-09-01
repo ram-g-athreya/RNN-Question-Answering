@@ -7,10 +7,11 @@ from . import Constants
 
 # module for childsumtreelstm
 class ChildSumTreeLSTM(nn.Module):
-    def __init__(self, in_dim, mem_dim, criterion, vocab_output):
+    def __init__(self, in_dim, mem_dim, num_classes, criterion, vocab_output):
         super(ChildSumTreeLSTM, self).__init__()
-        self.in_dim = in_dim * 2
+        self.in_dim = in_dim
         self.mem_dim = mem_dim
+        self.num_classes = num_classes
 
         self.ix = nn.Linear(self.in_dim, self.mem_dim)
         self.ih = nn.Linear(self.mem_dim, self.mem_dim)
@@ -23,6 +24,8 @@ class ChildSumTreeLSTM(nn.Module):
 
         self.ox = nn.Linear(self.in_dim, self.mem_dim)
         self.oh = nn.Linear(self.mem_dim, self.mem_dim)
+
+        self.ah = nn.Linear(self.mem_dim, self.num_classes)
 
         self.criterion = criterion
         self.output_module = None
@@ -50,13 +53,27 @@ class ChildSumTreeLSTM(nn.Module):
         return c, h
 
     def forward(self, tree, inputs, training = False):
-        # loss = Var(torch.zeros(1))  # init zero loss
+        outputs = []
         for idx in range(tree.num_children):
-            self.forward(tree.children[idx], inputs, training)
+            outputs.append(self.forward(tree.children[idx], inputs, training))
 
         child_c, child_h = self.get_child_states(tree)
         tree.state = self.node_forward(inputs[tree.idx], child_c, child_h) # TREE.IDX veruses TREE.IDX - 1
         output = self.output_module.forward(tree.state[1], training)
+
+        if len(outputs) > 0:
+            # for index in range(len(outputs)):
+            #     output = torch.add(output, outputs[index])
+            # output = self.output_module.logsoftmax(output)
+
+            if len(outputs) > 1:
+                # print(tree.state[1].shape, output.shape)
+                hidden = tree.state[1]
+                print(output.transpose(0, 1).shape, hidden.shape)
+                attn_weights = torch.bmm(output.transpose(0, 1), hidden)
+                print(attn_weights.shape)
+                exit(0)
+
         return output
 
     def get_child_states(self, tree):
@@ -79,7 +96,7 @@ class ChildSumTreeLSTM(nn.Module):
         return child_c, child_h
 
 class Classifier(nn.Module):
-    def __init__(self, mem_dim, num_classes, dropout=False):
+    def __init__(self, mem_dim, num_classes, dropout=True):
         super(Classifier, self).__init__()
         self.mem_dim = mem_dim
         self.num_classes = num_classes
@@ -98,7 +115,7 @@ class Classifier(nn.Module):
 class TreeLSTM(nn.Module):
     def __init__(self, in_dim, mem_dim, num_classes, criterion, vocab_output):
         super(TreeLSTM, self).__init__()
-        self.tree_module = ChildSumTreeLSTM(in_dim, mem_dim, criterion, vocab_output)
+        self.tree_module = ChildSumTreeLSTM(in_dim, mem_dim, num_classes, criterion, vocab_output)
         self.classifier = Classifier(mem_dim, num_classes)
         self.tree_module.set_output_module(self.classifier)
 

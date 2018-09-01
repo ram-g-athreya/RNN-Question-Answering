@@ -6,11 +6,9 @@ def parse_args():
     # data arguments
     parser.add_argument('--data', default='data/lc-quad/',
                         help='path to dataset')
-    parser.add_argument('--glove', default='data/glove/',
-                        help='directory with GLOVE embeddings')
     parser.add_argument('--save', default='checkpoints/',
                         help='directory to save checkpoints in')
-    parser.add_argument('--expname', type=str, default='test',
+    parser.add_argument('--expname', type=str, default='rnn-question-answering',
                         help='Name to identify experiment')
     # model arguments
     parser.add_argument('--input_dim', default=300, type=int,
@@ -35,6 +33,7 @@ def parse_args():
                               incompatible with weight decay')
     parser.add_argument('--optim', default='adam',
                         help='optimizer (default: adam)')
+
     # miscellaneous options
     parser.add_argument('--seed', default=123, type=int,
                         help='random seed (default: 123)')

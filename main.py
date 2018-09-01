@@ -67,13 +67,16 @@ def main():
     test_dir = os.path.join(args.data, 'test/')
 
     # get vocab object from vocab file previously written
-    vocab = Vocab(filename=os.path.join(args.data, 'vocab.txt'))
+    vocab_pos = Vocab(filename=os.path.join(args.data, 'vocab_pos.txt'))
+    vocab_rels = Vocab(filename=os.path.join(args.data, 'vocab_rels.txt'))
+
     vocab_output = Vocab(filename=os.path.join(args.data, 'vocab_output.txt'))
 
     # Set number of classes based on vocab_output
     args.num_classes = vocab_output.size()
 
-    logger.debug('==> LC-QUAD vocabulary size : %d ' % vocab.size())
+    logger.debug('==> LC-QUAD vocabulary pos size : %d ' % vocab_pos.size())
+    logger.debug('==> LC-QUAD vocabulary rels size : %d ' % vocab_rels.size())
     logger.debug('==> LC-QUAD output vocabulary size : %d ' % vocab_output.size())
 
     # load LC_QUAD dataset splits
@@ -81,7 +84,7 @@ def main():
     if os.path.isfile(train_file):
         train_dataset = torch.load(train_file)
     else:
-        train_dataset = LC_QUAD_Dataset(train_dir, vocab, args.num_classes)
+        train_dataset = LC_QUAD_Dataset(train_dir, vocab_pos, vocab_rels, args.num_classes)
         torch.save(train_dataset, train_file)
     logger.debug('==> Size of train data   : %d ' % len(train_dataset))
 
@@ -89,58 +92,76 @@ def main():
     if os.path.isfile(test_file):
         test_dataset = torch.load(test_file)
     else:
-        test_dataset = LC_QUAD_Dataset(test_dir, vocab, args.num_classes)
+        test_dataset = LC_QUAD_Dataset(test_dir, vocab_pos, vocab_rels, args.num_classes)
         torch.save(test_dataset, test_file)
     logger.debug('==> Size of test data    : %d ' % len(test_dataset))
 
     criterion = nn.NLLLoss()
 
-    args.input_dim = vocab.size()
+    input_dim = vocab_pos.size() + vocab_rels.size()
     # initialize model, criterion/loss_function, optimizer
     model = TreeLSTM(
-        args.input_dim,
+        input_dim,
         args.mem_dim,
         args.num_classes,
         criterion,
         vocab_output
     )
 
-    embedding_model = nn.Embedding(vocab.size(), args.input_dim)
-    emb_file = os.path.join(args.data, 'pth/lc_quad_embed.pth')
-    if os.path.isfile(emb_file):
-        emb = torch.load(emb_file)
-    else:
-        # load glove embeddings and vocab
-        # glove_vocab, glove_emb = utils.load_word_vectors(
-        #     os.path.join(args.glove, 'glove.840B.300d'))
-        # logger.debug('==> GLOVE vocabulary size: %d ' % glove_vocab.size())
+    pos_embedding_model = nn.Embedding(vocab_pos.size(), vocab_pos.size())
+    rels_embedding_model = nn.Embedding(vocab_rels.size(), vocab_rels.size())
 
-        emb = torch.zeros(vocab.size(), args.input_dim, dtype=torch.float, device=device)
-        # fasttext_model = load_model("data/fasttext/wiki.en.bin")
+    pos_emb = torch.zeros(vocab_pos.size(), vocab_pos.size(), dtype=torch.float, device=device)
+    rels_emb = torch.zeros(vocab_rels.size(), vocab_rels.size(), dtype=torch.float, device=device)
 
-        for word in vocab.labelToIdx.keys():
-            word_index = vocab.getIndex(word)
-            word_vector = torch.zeros(1, args.input_dim)
-            word_vector[0, word_index] = 1
-            emb[word_index] = word_vector
+    for word in vocab_pos.labelToIdx.keys():
+        word_index = vocab_pos.getIndex(word)
+        word_vector = torch.zeros(1, vocab_pos.size())
+        word_vector[0, word_index] = 1
+        pos_emb[word_index] = word_vector
 
+    for word in vocab_rels.labelToIdx.keys():
+        word_index = vocab_rels.getIndex(word)
+        word_vector = torch.zeros(1, vocab_rels.size())
+        word_vector[0, word_index] = 1
+        rels_emb[word_index] = word_vector
 
-            # word_vector = fasttext_model.get_word_vector(word)
-            # if word_vector.all() != None and len(word_vector) == args.input_dim:
-            #     emb[vocab.getIndex(word)] = torch.Tensor(word_vector)
-            # else:
-            #     emb[vocab.getIndex(word)] = torch.Tensor(args.input_dim).uniform_(-1, 1)
-            #     print("WORD VECTOR NOT FOUND FOR: ", word)
+    # emb_file = os.path.join(args.data, 'pth/lc_quad_embed.pth')
+    # if os.path.isfile(emb_file):
+    #     emb = torch.load(emb_file)
+    # else:
+    #     # load glove embeddings and vocab
+    #     # glove_vocab, glove_emb = utils.load_word_vectors(
+    #     #     os.path.join(args.glove, 'glove.840B.300d'))
+    #     # logger.debug('==> GLOVE vocabulary size: %d ' % glove_vocab.size())
+    #
+    #     emb = torch.zeros(vocab.size(), args.input_dim, dtype=torch.float, device=device)
+    #     # fasttext_model = load_model("data/fasttext/wiki.en.bin")
+    #
+    #     for word in vocab.labelToIdx.keys():
+    #         word_index = vocab.getIndex(word)
+    #         word_vector = torch.zeros(1, args.input_dim)
+    #         word_vector[0, word_index] = 1
+    #         emb[word_index] = word_vector
+    #
+    #
+    #         # word_vector = fasttext_model.get_word_vector(word)
+    #         # if word_vector.all() != None and len(word_vector) == args.input_dim:
+    #         #     emb[vocab.getIndex(word)] = torch.Tensor(word_vector)
+    #         # else:
+    #         #     emb[vocab.getIndex(word)] = torch.Tensor(args.input_dim).uniform_(-1, 1)
+    #         #     print("WORD VECTOR NOT FOUND FOR: ", word)
+    #
+    #         # if glove_vocab.getIndex(word):
+    #         #     emb[vocab.getIndex(word)] = glove_emb[glove_vocab.getIndex(word)]
+    #         # else:
+    #         #     emb[vocab.getIndex(word)] = torch.Tensor(args.input_dim).uniform_(-1, 1)
 
-            # if glove_vocab.getIndex(word):
-            #     emb[vocab.getIndex(word)] = glove_emb[glove_vocab.getIndex(word)]
-            # else:
-            #     emb[vocab.getIndex(word)] = torch.Tensor(args.input_dim).uniform_(-1, 1)
-
-    torch.save(emb, emb_file)
+    # torch.save(emb, emb_file)
     # plug these into embedding matrix inside model
     # model.emb.weight.data.copy_(emb)
-    embedding_model.state_dict()['weight'].copy_(emb)
+    pos_embedding_model.state_dict()['weight'].copy_(pos_emb)
+    rels_embedding_model.state_dict()['weight'].copy_(rels_emb)
 
     model.to(device), criterion.to(device)
     if args.optim == 'adam':
@@ -156,10 +177,10 @@ def main():
     metrics = Metrics(args.num_classes)
 
     # create trainer object for training and testing
-    trainer = Trainer(args, model, embedding_model, criterion, optimizer, device, vocab_output)
+    trainer = Trainer(args, model, pos_embedding_model, rels_embedding_model, criterion, optimizer, device, vocab_output)
 
     best = -float('inf')
-    file_name = "analysis/input_dim={},mem_dim={},epochs={}".format(args.input_dim, args.mem_dim, args.epochs)
+    file_name = "analysis/expname={},input_dim={},mem_dim={},epochs={}".format(args.expname, input_dim, args.mem_dim, args.epochs)
 
     for epoch in range(args.epochs):
         print("\n" * 5)

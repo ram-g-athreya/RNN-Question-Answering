@@ -27,7 +27,8 @@ public class DependencyParse {
     if (!props.containsKey("tokpath") ||
         !props.containsKey("parentpath") ||
         !props.containsKey("relpath") ||
-        !props.containsKey("pospath")) {
+        !props.containsKey("pospath") ||
+        !props.containsKey("lenpath")) {
       System.err.println(
         "usage: java DependencyParse -tokenize - -tokpath <tokpath> -parentpath <parentpath> -relpath <relpath> -pospath <pospath>");
       System.exit(1);
@@ -42,11 +43,13 @@ public class DependencyParse {
     String parentPath = props.getProperty("parentpath");
     String relPath = props.getProperty("relpath");
     String posPath = props.getProperty("pospath");
+    String lenPath = props.getProperty("lenpath");
 
     BufferedWriter tokWriter = new BufferedWriter(new FileWriter(tokPath));
     BufferedWriter parentWriter = new BufferedWriter(new FileWriter(parentPath));
     BufferedWriter relWriter = new BufferedWriter(new FileWriter(relPath));
     BufferedWriter posWriter = new BufferedWriter(new FileWriter(posPath));
+    BufferedWriter lenWriter = new BufferedWriter(new FileWriter(lenPath));
 
     MaxentTagger tagger = new MaxentTagger(TAGGER_MODEL);
     DependencyParser parser = DependencyParser.loadFromModelFile(PARSER_MODEL);
@@ -105,6 +108,7 @@ public class DependencyParse {
       }
       sb.append('\n');
       tokWriter.write(sb.toString());
+      lenWriter.write(String.valueOf(len) + "\n");
 
       // print parent pointers
       sb = new StringBuilder();
@@ -150,5 +154,6 @@ public class DependencyParse {
     parentWriter.close();
     relWriter.close();
     posWriter.close();
+    lenWriter.close();
   }
 }

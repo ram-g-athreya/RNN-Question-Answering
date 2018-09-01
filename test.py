@@ -1,9 +1,6 @@
+import nltk
 
+words = "VB PDT DT WP$ NNS POS NN VBZ NNP NNPS .".split()
 
-import torch, os
-data_dir = 'data/lc-quad'
-train_dir = os.path.join(data_dir, 'train/')
-train_file = os.path.join(data_dir, 'pth/lc_quad_train.pth')
-
-dataset = torch.load(train_file)
-print(dataset)
+freq = nltk.FreqDist(words)
+print(freq["IN"] / len(words))
