@@ -7,10 +7,11 @@ from . import utils
 
 
 class Trainer(object):
-    def __init__(self, args, model, pos_embedding_model, rels_embedding_model, criterion, optimizer, device, vocab_output):
+    def __init__(self, args, model, toks_embedding_model, pos_embedding_model, rels_embedding_model, criterion, optimizer, device, vocab_output):
         super(Trainer, self).__init__()
         self.args = args
         self.model = model
+        self.toks_embedding_model = toks_embedding_model
         self.pos_embedding_model = pos_embedding_model
         self.rels_embedding_model = rels_embedding_model
         self.criterion = criterion
@@ -23,40 +24,48 @@ class Trainer(object):
     def train(self, dataset):
         self.model.train()
 
+        self.toks_embedding_model.train()
+        self.toks_embedding_model.zero_grad()
+
         self.pos_embedding_model.train()
         self.pos_embedding_model.zero_grad()
 
         self.rels_embedding_model.train()
         self.rels_embedding_model.zero_grad()
 
-
         self.optimizer.zero_grad()
         total_loss, k = 0.0, 0
         indices = torch.randperm(len(dataset), dtype=torch.long, device='cpu')
         for idx in tqdm(range(len(dataset)), desc='Training epoch ' + str(self.epoch + 1) + ''):
-            tree, pos_sent, rels_sent, aug_vector, label = dataset[indices[idx]]
+            tree, toks_sent, pos_sent, rels_sent, label = dataset[indices[idx]]
+
+            toks_sent = Var(toks_sent)
             pos_sent = Var(pos_sent)
             rels_sent = Var(rels_sent)
 
             target = Var(utils.map_label_to_target(label, dataset.num_classes, self.vocab_output))
 
+            toks_sent = toks_sent.to(self.device)
             pos_sent = pos_sent.to(self.device)
             rels_sent = rels_sent.to(self.device)
             target = target.to(self.device)
 
+            toks_emb = F.torch.unsqueeze(self.toks_embedding_model(toks_sent), 1)
             pos_emb = F.torch.unsqueeze(self.pos_embedding_model(pos_sent), 1)
             rels_emb = F.torch.unsqueeze(self.rels_embedding_model(rels_sent), 1)
-            emb = torch.cat((pos_emb, rels_emb), 2)
+            emb = torch.cat((toks_emb, pos_emb, rels_emb), 2)
 
             output = self.model.forward(tree, emb, training=True)
             err = self.criterion(output, target)
 
-            # err = err / self.args.batchsize
             total_loss += err.item()
             err.backward()
             k += 1
 
             if k == self.args.batchsize:
+                for f in self.toks_embedding_model.parameters():
+                    f.data.sub_(f.grad.data * self.args.emblr)
+
                 for f in self.pos_embedding_model.parameters():
                     f.data.sub_(f.grad.data * self.args.emblr)
 
@@ -64,9 +73,12 @@ class Trainer(object):
                     f.data.sub_(f.grad.data * self.args.emblr)
 
                 self.optimizer.step()
+                self.optimizer.zero_grad()
+
+                self.toks_embedding_model.zero_grad()
                 self.pos_embedding_model.zero_grad()
                 self.rels_embedding_model.zero_grad()
-                self.optimizer.zero_grad()
+
                 k = 0
         self.epoch += 1
         return total_loss / len(dataset)
@@ -74,6 +86,7 @@ class Trainer(object):
     # helper function for testing
     def test(self, dataset):
         self.model.eval()
+        self.toks_embedding_model.eval()
         self.pos_embedding_model.eval()
         self.rels_embedding_model.eval()
         total_loss = 0
@@ -81,19 +94,23 @@ class Trainer(object):
 
         for idx in tqdm(range(len(dataset)), desc='Testing epoch  ' + str(self.epoch) + ''):
             torch.no_grad()
-            tree, pos_sent, rels_sent, aug_vector, label = dataset[idx]
+            tree, toks_sent, pos_sent, rels_sent, label = dataset[idx]
+
+            toks_sent = Var(toks_sent)
             pos_sent = Var(pos_sent)
             rels_sent = Var(rels_sent)
 
             target = utils.map_label_to_target(label, dataset.num_classes, self.vocab_output)
 
+            toks_sent = toks_sent.to(self.device)
             pos_sent = pos_sent.to(self.device)
             rels_sent = rels_sent.to(self.device)
             target = target.to(self.device)
 
+            toks_emb = F.torch.unsqueeze(self.toks_embedding_model(toks_sent), 1)
             pos_emb = F.torch.unsqueeze(self.pos_embedding_model(pos_sent), 1)
             rels_emb = F.torch.unsqueeze(self.rels_embedding_model(rels_sent), 1)
-            emb = torch.cat((pos_emb, rels_emb), 2)
+            emb = torch.cat((toks_emb, pos_emb, rels_emb), 2)
 
             output = self.model.forward(tree, emb, training=True)
             err = self.criterion(output, target)

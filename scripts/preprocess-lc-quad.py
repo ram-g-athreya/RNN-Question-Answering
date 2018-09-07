@@ -5,6 +5,8 @@ Preprocessing script for LC-QUAD data.
 import glob
 import json
 import os
+import string
+import re
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -74,8 +76,11 @@ def split_data(X, y, dst_dir):
         y = y.tolist()
 
         for index in range(len(X)):
-            corrected_question = str(X.iloc[index]["corrected_question"])
-            # corrected_question = str(X.iloc[index]["corrected_question"]).replace('(', '').replace(')', '')
+            corrected_question = str(X.iloc[index]["corrected_question"]).lower().strip()
+            # corrected_question = re.sub(re.compile(r'\s+'), ' ', corrected_question.translate(str.maketrans('!,:;>?', '      ')))
+            # if corrected_question[-1] == '.':
+            #     corrected_question = corrected_question[0:-1]
+
             idfile.write(str(X.iloc[index]["_id"]) + "\n")
             inputfile.write(corrected_question + "\n")
             outputfile.write(str(y[index]) + "\n")
@@ -146,7 +151,11 @@ if __name__ == '__main__':
 
     # Build Vocabulary for input
     build_vocab(
-        glob.glob(os.path.join(lc_quad_dir, '*/*.pos')), # All POS and RELS files
+        glob.glob(os.path.join(lc_quad_dir, '*/*.toks')),
+        os.path.join(lc_quad_dir, 'vocab_toks.txt'))
+
+    build_vocab(
+        glob.glob(os.path.join(lc_quad_dir, '*/*.pos')),
         os.path.join(lc_quad_dir, 'vocab_pos.txt'))
 
     build_vocab(

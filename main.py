@@ -66,7 +66,10 @@ def main():
     train_dir = os.path.join(args.data, 'train/')
     test_dir = os.path.join(args.data, 'test/')
 
+    TOKS_INPUT_DIM = 300
+
     # get vocab object from vocab file previously written
+    vocab_toks = Vocab(filename=os.path.join(args.data, 'vocab_toks.txt'), data=[Constants.PAD_WORD, Constants.UNK_WORD, Constants.BOS_WORD, Constants.EOS_WORD])
     vocab_pos = Vocab(filename=os.path.join(args.data, 'vocab_pos.txt'))
     vocab_rels = Vocab(filename=os.path.join(args.data, 'vocab_rels.txt'))
 
@@ -75,6 +78,7 @@ def main():
     # Set number of classes based on vocab_output
     args.num_classes = vocab_output.size()
 
+    logger.debug('==> LC-QUAD vocabulary toks size : %d ' % vocab_toks.size())
     logger.debug('==> LC-QUAD vocabulary pos size : %d ' % vocab_pos.size())
     logger.debug('==> LC-QUAD vocabulary rels size : %d ' % vocab_rels.size())
     logger.debug('==> LC-QUAD output vocabulary size : %d ' % vocab_output.size())
@@ -84,7 +88,7 @@ def main():
     if os.path.isfile(train_file):
         train_dataset = torch.load(train_file)
     else:
-        train_dataset = LC_QUAD_Dataset(train_dir, vocab_pos, vocab_rels, args.num_classes)
+        train_dataset = LC_QUAD_Dataset(train_dir, vocab_toks, vocab_pos, vocab_rels, args.num_classes)
         torch.save(train_dataset, train_file)
     logger.debug('==> Size of train data   : %d ' % len(train_dataset))
 
@@ -92,14 +96,14 @@ def main():
     if os.path.isfile(test_file):
         test_dataset = torch.load(test_file)
     else:
-        test_dataset = LC_QUAD_Dataset(test_dir, vocab_pos, vocab_rels, args.num_classes)
+        test_dataset = LC_QUAD_Dataset(test_dir, vocab_toks, vocab_pos, vocab_rels, args.num_classes)
         torch.save(test_dataset, test_file)
     logger.debug('==> Size of test data    : %d ' % len(test_dataset))
 
     criterion = nn.NLLLoss()
 
-    input_dim = vocab_pos.size() + vocab_rels.size()
-    # initialize model, criterion/loss_function, optimizer
+    input_dim = vocab_pos.size() + vocab_rels.size() + TOKS_INPUT_DIM
+
     model = TreeLSTM(
         input_dim,
         args.mem_dim,
@@ -108,6 +112,7 @@ def main():
         vocab_output
     )
 
+    toks_embedding_model = nn.Embedding(vocab_toks.size(), TOKS_INPUT_DIM)
     pos_embedding_model = nn.Embedding(vocab_pos.size(), vocab_pos.size())
     rels_embedding_model = nn.Embedding(vocab_rels.size(), vocab_rels.size())
 
@@ -115,51 +120,38 @@ def main():
     rels_emb = torch.zeros(vocab_rels.size(), vocab_rels.size(), dtype=torch.float, device=device)
 
     for word in vocab_pos.labelToIdx.keys():
+        # pos_emb[vocab_pos.getIndex(word)] = torch.Tensor(vocab_pos.size()).uniform_(-1, 1)
         word_index = vocab_pos.getIndex(word)
         word_vector = torch.zeros(1, vocab_pos.size())
         word_vector[0, word_index] = 1
         pos_emb[word_index] = word_vector
 
     for word in vocab_rels.labelToIdx.keys():
+        # rels_emb[vocab_rels.getIndex(word)] = torch.Tensor(vocab_rels.size()).uniform_(-1, 1)
         word_index = vocab_rels.getIndex(word)
         word_vector = torch.zeros(1, vocab_rels.size())
         word_vector[0, word_index] = 1
         rels_emb[word_index] = word_vector
 
-    # emb_file = os.path.join(args.data, 'pth/lc_quad_embed.pth')
-    # if os.path.isfile(emb_file):
-    #     emb = torch.load(emb_file)
-    # else:
-    #     # load glove embeddings and vocab
-    #     # glove_vocab, glove_emb = utils.load_word_vectors(
-    #     #     os.path.join(args.glove, 'glove.840B.300d'))
-    #     # logger.debug('==> GLOVE vocabulary size: %d ' % glove_vocab.size())
-    #
-    #     emb = torch.zeros(vocab.size(), args.input_dim, dtype=torch.float, device=device)
-    #     # fasttext_model = load_model("data/fasttext/wiki.en.bin")
-    #
-    #     for word in vocab.labelToIdx.keys():
-    #         word_index = vocab.getIndex(word)
-    #         word_vector = torch.zeros(1, args.input_dim)
-    #         word_vector[0, word_index] = 1
-    #         emb[word_index] = word_vector
-    #
-    #
-    #         # word_vector = fasttext_model.get_word_vector(word)
-    #         # if word_vector.all() != None and len(word_vector) == args.input_dim:
-    #         #     emb[vocab.getIndex(word)] = torch.Tensor(word_vector)
-    #         # else:
-    #         #     emb[vocab.getIndex(word)] = torch.Tensor(args.input_dim).uniform_(-1, 1)
-    #         #     print("WORD VECTOR NOT FOUND FOR: ", word)
-    #
-    #         # if glove_vocab.getIndex(word):
-    #         #     emb[vocab.getIndex(word)] = glove_emb[glove_vocab.getIndex(word)]
-    #         # else:
-    #         #     emb[vocab.getIndex(word)] = torch.Tensor(args.input_dim).uniform_(-1, 1)
+    toks_emb_file = os.path.join(args.data, 'pth/lc_quad_embed.pth')
+    if os.path.isfile(toks_emb_file):
+        toks_emb = torch.load(toks_emb_file)
+    else:
+        print("Generating FastText Word Vectors")
+        toks_emb = torch.zeros(vocab_toks.size(), TOKS_INPUT_DIM, dtype=torch.float, device=device)
+        fasttext_model = load_model("data/fasttext/wiki.en.bin")
 
-    # torch.save(emb, emb_file)
+        for word in vocab_toks.labelToIdx.keys():
+            word_vector = fasttext_model.get_word_vector(word)
+            if word_vector.all() != None and len(word_vector) == TOKS_INPUT_DIM:
+                toks_emb[vocab_toks.getIndex(word)] = torch.Tensor(word_vector)
+            else:
+                toks_emb[vocab_toks.getIndex(word)] = torch.Tensor(TOKS_INPUT_DIM).uniform_(-1, 1)
+
+        torch.save(toks_emb, toks_emb_file)
+
     # plug these into embedding matrix inside model
-    # model.emb.weight.data.copy_(emb)
+    toks_embedding_model.state_dict()['weight'].copy_(toks_emb)
     pos_embedding_model.state_dict()['weight'].copy_(pos_emb)
     rels_embedding_model.state_dict()['weight'].copy_(rels_emb)
 
@@ -177,9 +169,7 @@ def main():
     metrics = Metrics(args.num_classes)
 
     # create trainer object for training and testing
-    trainer = Trainer(args, model, pos_embedding_model, rels_embedding_model, criterion, optimizer, device, vocab_output)
-
-    best = -float('inf')
+    trainer = Trainer(args, model, toks_embedding_model, pos_embedding_model, rels_embedding_model, criterion, optimizer, device, vocab_output)
     file_name = "analysis/expname={},input_dim={},mem_dim={},epochs={}".format(args.expname, input_dim, args.mem_dim, args.epochs)
 
     for epoch in range(args.epochs):
@@ -193,7 +183,7 @@ def main():
 
         print('==> Train loss   : %f \t' % train_loss, end="")
         print('Epoch ', str(epoch + 1), 'train percentage ', train_acc)
-        write_analysis_file(file_name, epoch, train_pred, train_dataset.labels, "train_acc", train_acc, vocab_output)
+        write_analysis_file(file_name, epoch, train_pred, train_dataset.labels, "train_acc", train_acc, train_loss, vocab_output)
 
         # Test Model on Testing Dataset
         test_loss, test_pred = trainer.test(test_dataset)
@@ -201,10 +191,10 @@ def main():
 
         print('==> Test loss   : %f \t' % test_loss, end="")
         print('Epoch ', str(epoch + 1), 'test percentage ', test_acc)
-        write_analysis_file(file_name, epoch, test_pred, test_dataset.labels, "test_acc", test_acc, vocab_output)
+        write_analysis_file(file_name, epoch, test_pred, test_dataset.labels, "test_acc", test_acc, test_loss, vocab_output)
 
-def write_analysis_file(file_name, epoch, predictions, labels, accuracy_label, accuracy, vocab_output):
-    with open(file_name + ",current_epoch={},{}={}.csv".format(epoch + 1, accuracy_label, accuracy), "w") as csv_file:
+def write_analysis_file(file_name, epoch, predictions, labels, accuracy_label, accuracy, loss, vocab_output):
+    with open(file_name + ",current_epoch={},{}={},loss={}.csv".format(epoch + 1, accuracy_label, accuracy ,loss), "w") as csv_file:
         writer = csv.writer(csv_file)
         preds = [vocab_output.getLabel(int(pred)) for pred in predictions]
         labels = labels.int().numpy()
