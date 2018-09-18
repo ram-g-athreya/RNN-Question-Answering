@@ -25,8 +25,6 @@ class ChildSumTreeLSTM(nn.Module):
         self.ox = nn.Linear(self.in_dim, self.mem_dim)
         self.oh = nn.Linear(self.mem_dim, self.mem_dim)
 
-        self.ah = nn.Linear(self.mem_dim, self.num_classes)
-
         self.criterion = criterion
         self.output_module = None
         self.vocab_output = vocab_output
@@ -60,6 +58,10 @@ class ChildSumTreeLSTM(nn.Module):
         child_c, child_h = self.get_child_states(tree)
         tree.state = self.node_forward(inputs[tree.idx], child_c, child_h)
         output = self.output_module.forward(tree.state[1], training)
+
+        # if len(outputs) > 0:
+        #     sum_outputs = F.torch.sum(torch.stack(outputs), dim=0)
+        #     output = torch.add(sum_outputs, output) / (len(outputs) + 1)
         return output
 
     def get_child_states(self, tree):
@@ -90,20 +92,26 @@ class Classifier(nn.Module):
         self.l1 = nn.Linear(self.mem_dim, self.num_classes)
         self.logsoftmax = nn.LogSoftmax(dim=1)
 
+    def set_dropout(self, dropout):
+        self.dropout = dropout
+
     def forward(self, vec, training=False):
         if self.dropout:
-            out = self.logsoftmax(self.l1(F.dropout(vec, training=training)))
+            out = self.logsoftmax(self.l1(F.dropout(vec, training=training, p=0.5)))
         else:
             out = self.logsoftmax(self.l1(vec))
         return out
 
 # putting the whole model together
 class TreeLSTM(nn.Module):
-    def __init__(self, in_dim, mem_dim, num_classes, criterion, vocab_output):
+    def __init__(self, in_dim, mem_dim, num_classes, criterion, vocab_output, dropout=False):
         super(TreeLSTM, self).__init__()
         self.tree_module = ChildSumTreeLSTM(in_dim, mem_dim, num_classes, criterion, vocab_output)
-        self.classifier = Classifier(mem_dim, num_classes)
+        self.classifier = Classifier(mem_dim, num_classes, dropout)
         self.tree_module.set_output_module(self.classifier)
+
+    def set_dropout(self, dropout):
+        self.classifier.set_dropout(dropout)
 
     def forward(self, tree, inputs, training = False):
         output = self.tree_module(tree, inputs, training)

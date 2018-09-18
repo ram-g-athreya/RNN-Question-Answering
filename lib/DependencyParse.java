@@ -107,8 +107,8 @@ public class DependencyParse {
         sb.append(tokens.get(len - 1).word());
       }
       sb.append('\n');
-      tokWriter.write(sb.toString());
-      lenWriter.write(String.valueOf(len) + "\n");
+      tokWriter.write(sb.toString().toLowerCase());
+      lenWriter.write(String.valueOf(sb.toString().length() - 1) + "\n");
 
       // print parent pointers
       sb = new StringBuilder();

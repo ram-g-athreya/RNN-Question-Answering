@@ -8,6 +8,8 @@ import os
 import string
 import re
 
+import nltk
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
@@ -43,14 +45,20 @@ def constituency_parse(filepath, cp='', tokenize=True):
     os.system(cmd)
 
 
-def build_vocab(filepaths, dst_path, lowercase=False):
+def build_vocab(filepaths, dst_path, lowercase=False, character_level=False):
     vocab = set()
     for filepath in filepaths:
         with open(filepath) as f:
             for line in f:
                 if lowercase:
                     line = line.lower()
-                vocab |= set(line.split())
+
+                if character_level is True:
+                    line = line.replace('\r', '').replace('\t', '')
+                    line_split = [c for c in line]
+                else:
+                    line_split = line.split()
+                vocab |= set(line_split)
     with open(dst_path, 'w') as f:
         for w in sorted(vocab):
             f.write(w + '\n')
@@ -76,11 +84,7 @@ def split_data(X, y, dst_dir):
         y = y.tolist()
 
         for index in range(len(X)):
-            corrected_question = str(X.iloc[index]["corrected_question"]).lower().strip()
-            # corrected_question = re.sub(re.compile(r'\s+'), ' ', corrected_question.translate(str.maketrans('!,:;>?', '      ')))
-            # if corrected_question[-1] == '.':
-            #     corrected_question = corrected_question[0:-1]
-
+            corrected_question = str(X.iloc[index]["corrected_question"]).strip()
             idfile.write(str(X.iloc[index]["_id"]) + "\n")
             inputfile.write(corrected_question + "\n")
             outputfile.write(str(y[index]) + "\n")
@@ -115,6 +119,10 @@ if __name__ == '__main__':
     df_test = pd.read_json(os.path.join(lc_quad_dir, "test-data.json"))
     df = pd.concat([df_train, df_test], ignore_index = True)
 
+    # desired_templates = df['sparql_template_id'].value_counts() >= 10
+    # desired_templates = desired_templates.index[desired_templates == True].tolist()
+    # df = df[df['sparql_template_id'].isin(desired_templates)]
+
     X = df.loc[:, df.columns != 'sparql_template_id']
     y = df['sparql_template_id'].tolist()
 
@@ -122,16 +130,75 @@ if __name__ == '__main__':
         id = y[index]
         if id >= 300 and id < 500: # Collapse 3xx or 4xx templates to their corresponding template - 300 id since all that differentiates them is extra rdf:type class triple which can be added as an optional triple to SPARQL Query
             y[index] = id - 300
-        elif id == 152: # Effectively Template 152 and Template 151 are the same template or can be converted into single SPARQL Query
+
+        if y[index] == 152: # Effectively Template 152 and Template 151 are the same template or can be converted into single SPARQL Query
             y[index] = 151
 
+        # if y[index] == 2:
+        #     y[index] = 1
+        #
+        # if y[index] == 5:
+        #     y[index] = 3
+        #
+        # if y[index] == 15:
+        #     y[index] = 7
+        #
+        # if y[index] == 16:
+        #     y[index] = 8
+
+
+        # if id == 305:
+        #     y[index] = 303
+        #
+        # if id == 315:
+        #     y[index] = 307
+        #
+        # if id == 316:
+        #     y[index] = 308
+
+
+        # if y[index] == 102:
+        #     y[index] = 101
+        #
+        # if y[index] == 105:
+        #     y[index] = 103
+
+
+
+        # if id == 405:
+        #     y[index] = 403
+
+
+
+
+
+
+
+
+        # if id == 306:
+        #     y[index] = 6
+        #
+        # if id == 305:
+        #     y[index] = 5
+
+        # if id == 16: # Need to see if this combination can be avoided
+        #     y[index] = 15
+        #
+        #
+        # if id == 308:
+        #     y[index] = 8
+        #
+        # if id == 405:
+        #     y[index] = 105
+
         # Because they have very similar but inverted structures
-        if y[index] == 2:
-            y[index] = 1
-        elif y[index] == 106:
-            y[index] = 105
-        elif y[index] == 5:
-            y[index] = 3
+    #     if y[index] == 2:
+    #         y[index] = 1
+
+    #     if y[index] == 106:
+    #         y[index] = 105
+    #     if y[index] == 5:
+    #         y[index] = 3
 
     y = pd.Series(y)
     print(y.value_counts(normalize=True))
@@ -152,7 +219,12 @@ if __name__ == '__main__':
     # Build Vocabulary for input
     build_vocab(
         glob.glob(os.path.join(lc_quad_dir, '*/*.toks')),
-        os.path.join(lc_quad_dir, 'vocab_toks.txt'))
+        os.path.join(lc_quad_dir, 'vocab_toks.txt'), lowercase=True)
+
+    # Character Level
+    build_vocab(
+        glob.glob(os.path.join(lc_quad_dir, '*/*.toks')),
+        os.path.join(lc_quad_dir, 'vocab_chars.txt'), lowercase=True, character_level=True)
 
     build_vocab(
         glob.glob(os.path.join(lc_quad_dir, '*/*.pos')),
@@ -160,7 +232,6 @@ if __name__ == '__main__':
 
     build_vocab(
         glob.glob(os.path.join(lc_quad_dir, '*/*.rels')),
-        # All POS and RELS files
         os.path.join(lc_quad_dir, 'vocab_rels.txt'))
 
     # Build Vocabulary for output

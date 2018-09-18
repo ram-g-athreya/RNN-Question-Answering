@@ -16,13 +16,13 @@ def parse_args():
     parser.add_argument('--freeze_embed', action='store_true',
                         help='Freeze word embeddings')
     # training arguments
-    parser.add_argument('--epochs', default=15, type=int,
+    parser.add_argument('--epochs', default=100, type=int,
                         help='number of total epochs to run')
     parser.add_argument('--batchsize', default=25, type=int,
                         help='batchsize for optimizer updates')
     parser.add_argument('--lr', default=1e-2, type=float,
                         metavar='LR', help='initial learning rate')
-    parser.add_argument('--wd', default=1e-4, type=float,
+    parser.add_argument('--wd', default=1e-2, type=float,
                         help='weight decay (default: 1e-4)')
     parser.add_argument('--emblr', default=1e-2, type=float,
                         metavar='EMLR', help='initial embedding learning rate')

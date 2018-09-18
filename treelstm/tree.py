@@ -11,7 +11,7 @@ class Tree(object):
         self.children.append(child)
 
     def size(self):
-        if getattr(self, '_size'):
+        if hasattr(self, '_size'):
             return self._size
         count = 1
         for i in range(self.num_children):

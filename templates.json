@@ -1,0 +1,60 @@
+{
+  "1": {
+    "sparql": "SELECT DISTINCT ?uri WHERE { ?uri <p> <r> . OPTIONAL { ?uri rdf:type <c> } }",
+    "slots": ["p", "c", "r"],
+    "return": "uri"
+  },
+  "2": {
+    "sparql": "SELECT DISTINCT ?uri WHERE { <r> <p> ?uri . }",
+    "slots": ["p", "r"],
+    "return": "uri"
+  },
+  "3": {
+    "sparql": "SELECT DISTINCT ?uri WHERE { <r> <p> ?x . ?x <p2> ?uri . OPTIONAL { ?x rdf:type <c> } }",
+    "slots": ["p", "p2", "c", "r"],
+    "return": "uri"
+  },
+  "5": {
+    "sparql": "SELECT DISTINCT ?uri WHERE { ?x <p> <r> . ?x <p2> ?uri . OPTIONAL { ?x rdf:type <c> } }",
+    "slots": ["p", "p2", "c", "r"],
+    "return": "uri"
+  },
+  "6": {
+    "sparql": "SELECT DISTINCT ?uri WHERE { ?x <p> <r> . ?uri <p2> ?x . OPTIONAL { ?uri rdf:type <c> } }",
+    "slots": ["p", "p2", "c", "r"],
+    "return": "uri"
+  },
+  "8": {
+    "sparql": "SELECT DISTINCT ?uri WHERE { ?uri <p> <r> . ?uri <p2> <r2> . OPTIONAL { ?uri rdf:type <c> } }",
+    "slots": ["p", "p2", "c", "r", "r2"],
+    "return": "uri"
+  },
+  "15": {
+    "sparql": "SELECT DISTINCT ?uri WHERE { <r> <p> ?uri. <r2> <p> ?uri . OPTIONAL { ?uri rdf:type <c> } }",
+    "slots": ["p", "c", "r", "r2"],
+    "return": "uri"
+  },
+  "16": {
+    "sparql": "SELECT DISTINCT ?uri WHERE { <r> <p> ?uri . <r2> <p2> ?uri . OPTIONAL { ?x rdf:type <c> } }",
+    "slots": ["p", "p2", "c", "r", "r2"],
+    "return": "uri"
+  },
+  "101": {
+    "sparql": ""
+  },
+  "105": {
+    "sparql": "SELECT (COUNT(DISTINCT ?uri) as ?count) WHERE { ?x <p> <r> . ?x <p2> ?uri . OPTIONAL { ?uri rdf:type <c> } }",
+    "slots": ["p", "p2", "c", "r"],
+    "return": "count"
+  },
+  "111": {
+    "sparql": "SELECT (COUNT(DISTINCT ?uri) as ?count) WHERE { ?x <p> <r> . ?x <p> ?uri }",
+    "slots": ["p", "r"],
+    "return": "count"
+  },
+  "151": {
+    "sparql": "ASK WHERE { <r> <p> <r2> }",
+    "slots": ["p", "r", "r2"],
+    "return": "boolean"
+  }
+}

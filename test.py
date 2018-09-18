@@ -1,9 +1,12 @@
-import string, re
-print(string.punctuation)
-# sent = "what is the common place where uss camp de-251 was built , and is one of the destinations of emerald air ? ! # $asd 1231"
-# sent = sent.translate(str.maketrans('', '', string.punctuation)).strip()
-# sent = re.sub(re.compile(r'\s+'), ' ', sent)
-#
-# print(sent)
+import torch
 
-# !,:;>?
+
+train_file = 'data/lc-quad/pth/lc_quad_train.pth'
+
+train_dataset = torch.load(train_file)
+
+tree = train_dataset.trees[0]
+
+for idx in range(tree.num_children):
+    print(tree.children[idx])
+
