@@ -5,10 +5,6 @@ Preprocessing script for LC-QUAD data.
 import glob
 import json
 import os
-import string
-import re
-
-import nltk
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -119,12 +115,14 @@ if __name__ == '__main__':
     df_test = pd.read_json(os.path.join(lc_quad_dir, "test-data.json"))
     df = pd.concat([df_train, df_test], ignore_index = True)
 
-    # desired_templates = df['sparql_template_id'].value_counts() >= 10
-    # desired_templates = desired_templates.index[desired_templates == True].tolist()
-    # df = df[df['sparql_template_id'].isin(desired_templates)]
+    desired_templates = df['sparql_template_id'].value_counts() >= 50
+    desired_templates = desired_templates.index[desired_templates == True].tolist()
+    df = df[df['sparql_template_id'].isin(desired_templates)]
 
     X = df.loc[:, df.columns != 'sparql_template_id']
     y = df['sparql_template_id'].tolist()
+
+    print(df['sparql_template_id'].value_counts())
 
     for index in range(len(y)):
         id = y[index]
@@ -134,78 +132,7 @@ if __name__ == '__main__':
         if y[index] == 152: # Effectively Template 152 and Template 151 are the same template or can be converted into single SPARQL Query
             y[index] = 151
 
-        # if y[index] == 2:
-        #     y[index] = 1
-        #
-        # if y[index] == 5:
-        #     y[index] = 3
-        #
-        # if y[index] == 15:
-        #     y[index] = 7
-        #
-        # if y[index] == 16:
-        #     y[index] = 8
-
-
-        # if id == 305:
-        #     y[index] = 303
-        #
-        # if id == 315:
-        #     y[index] = 307
-        #
-        # if id == 316:
-        #     y[index] = 308
-
-
-        # if y[index] == 102:
-        #     y[index] = 101
-        #
-        # if y[index] == 105:
-        #     y[index] = 103
-
-
-
-        # if id == 405:
-        #     y[index] = 403
-
-
-
-
-
-
-
-
-        # if id == 306:
-        #     y[index] = 6
-        #
-        # if id == 305:
-        #     y[index] = 5
-
-        # if id == 16: # Need to see if this combination can be avoided
-        #     y[index] = 15
-        #
-        #
-        # if id == 308:
-        #     y[index] = 8
-        #
-        # if id == 405:
-        #     y[index] = 105
-
-        # Because they have very similar but inverted structures
-    #     if y[index] == 2:
-    #         y[index] = 1
-
-    #     if y[index] == 106:
-    #         y[index] = 105
-    #     if y[index] == 5:
-    #         y[index] = 3
-
     y = pd.Series(y)
-    print(y.value_counts(normalize=True))
-
-    df_combined = X
-    df_combined['sparql_template_id'] = y
-    df.to_csv(os.path.join(lc_quad_dir, 'dataset.csv'), index=False)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
 
@@ -218,7 +145,7 @@ if __name__ == '__main__':
 
     # Build Vocabulary for input
     build_vocab(
-        glob.glob(os.path.join(lc_quad_dir, '*/*.toks')),
+        glob.glob(os.path.join(data_dir, '**/*.toks'), recursive=True),
         os.path.join(lc_quad_dir, 'vocab_toks.txt'), lowercase=True)
 
     # Character Level

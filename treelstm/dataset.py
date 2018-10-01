@@ -10,7 +10,6 @@ from .tree import Tree
 
 import nltk
 
-# Dataset class for SICK dataset
 class LC_QUAD_Dataset(data.Dataset):
     def __init__(self, path, vocab_toks, vocab_pos, vocab_rels, num_classes):
         super(LC_QUAD_Dataset, self).__init__()
@@ -24,7 +23,10 @@ class LC_QUAD_Dataset(data.Dataset):
         self.rels_sentences = self.read_sentences(os.path.join(path, 'input.rels'), self.vocab_rels)
         self.trees = self.read_trees(os.path.join(path, 'input.parents'))
 
-        self.labels = self.read_labels(os.path.join(path, 'output.txt'))
+        if num_classes > 0:
+            self.labels = self.read_labels(os.path.join(path, 'output.txt'))
+        else:
+            self.labels = torch.zeros(len(self.toks_sentences), dtype=torch.float)
         self.size = self.labels.size(0)
 
     def __len__(self):

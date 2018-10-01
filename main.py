@@ -43,7 +43,7 @@ def generate_one_hot_vectors(vocab):
     return emb
 
 def generate_embeddings(vocab, file):
-    emb_file = os.path.join(args.data, file)
+    emb_file = os.path.join(file)
     if os.path.isfile(emb_file):
         emb = torch.load(emb_file)
     else:
@@ -149,7 +149,7 @@ def main():
     pos_embedding_model = nn.Embedding(vocab_pos.size(), vocab_pos.size())
     rels_embedding_model = nn.Embedding(vocab_rels.size(), vocab_rels.size())
 
-    toks_emb = generate_embeddings(vocab_toks, 'pth/lc_quad_toks_embed.pth')
+    toks_emb = generate_embeddings(vocab_toks, os.path.join(args.data, 'pth/lc_quad_toks_embed.pth'))
     chars_emb = generate_one_hot_vectors(vocab_chars)
     pos_emb = generate_one_hot_vectors(vocab_pos)
     rels_emb = generate_one_hot_vectors(vocab_rels)
@@ -173,7 +173,7 @@ def main():
                                      model.parameters()), lr=args.lr, weight_decay=args.wd)
 
     metrics = Metrics()
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.3)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.25)
 
     # create trainer object for training and testing
     trainer = Trainer(args, model, {'toks': toks_embedding_model, 'pos': pos_embedding_model, 'rels': rels_embedding_model, 'chars': chars_embedding_model}, {'toks': vocab_toks, 'chars': vocab_chars, 'output': vocab_output}, criterion, optimizer)

@@ -30,22 +30,22 @@
     "return": "uri"
   },
   "8": {
-    "sparql": "SELECT DISTINCT ?uri WHERE { ?uri <p> <r> . ?uri <p2> <r2> . OPTIONAL { ?uri rdf:type <c> } }",
+    "sparql": "SELECT DISTINCT ?uri WHERE { ?uri <p> <r> . ?uri <p2> <r2> . ?uri rdf:type <c> }",
     "slots": ["p", "p2", "c", "r", "r2"],
     "return": "uri"
   },
   "11": {
-    "sparql": "SELECT ?uri WHERE { ?x <p> <r> . ?x <p> ?uri . OPTIONAL { ?x rdf:type <c> } }",
+    "sparql": "SELECT ?uri WHERE { ?x <p> <r> . ?x <p> ?uri . ?x rdf:type <c> }",
     "slots": ["p", "c", "r"],
     "return": "uri"
   },
   "15": {
-    "sparql": "SELECT DISTINCT ?uri WHERE { <r> <p> ?uri. <r2> <p> ?uri . OPTIONAL { ?uri rdf:type <c> } }",
+    "sparql": "SELECT DISTINCT ?uri WHERE { <r> <p> ?uri. <r2> <p> ?uri . }",
     "slots": ["p", "c", "r", "r2"],
     "return": "uri"
   },
   "16": {
-    "sparql": "SELECT DISTINCT ?uri WHERE { <r> <p> ?uri . <r2> <p2> ?uri . OPTIONAL { ?x rdf:type <c> } }",
+    "sparql": "SELECT DISTINCT ?uri WHERE { <r> <p> ?uri . <r2> <p2> ?uri . }",
     "slots": ["p", "p2", "c", "r", "r2"],
     "return": "uri"
   },
@@ -70,7 +70,7 @@
     "return": "count"
   },
   "106": {
-    "sparql": "SELECT (COUNT(DISTINCT ?uri) as ?count) WHERE { ?x <p> <r> . ?uri <p2> ?x . OPTIONAL { ?uri rdf:type <c> } }",
+    "sparql": "SELECT (COUNT(DISTINCT ?uri) as ?count) WHERE { ?x <p> <r> . ?uri <p2> ?x . ?uri rdf:type <c> }",
     "slots": ["p", "p2", "c", "r", "r2"],
     "return": "count"
   },

@@ -51,17 +51,13 @@ class ChildSumTreeLSTM(nn.Module):
         return c, h
 
     def forward(self, tree, inputs, training = False):
-        outputs = []
         for idx in range(tree.num_children):
-            outputs.append(self.forward(tree.children[idx], inputs, training))
+            self.forward(tree.children[idx], inputs, training)
 
         child_c, child_h = self.get_child_states(tree)
         tree.state = self.node_forward(inputs[tree.idx], child_c, child_h)
         output = self.output_module.forward(tree.state[1], training)
 
-        # if len(outputs) > 0:
-        #     sum_outputs = F.torch.sum(torch.stack(outputs), dim=0)
-        #     output = torch.add(sum_outputs, output) / (len(outputs) + 1)
         return output
 
     def get_child_states(self, tree):
@@ -97,7 +93,7 @@ class Classifier(nn.Module):
 
     def forward(self, vec, training=False):
         if self.dropout:
-            out = self.logsoftmax(self.l1(F.dropout(vec, training=training, p=0.5)))
+            out = self.logsoftmax(self.l1(F.dropout(vec, training=training, p=0.2)))
         else:
             out = self.logsoftmax(self.l1(vec))
         return out

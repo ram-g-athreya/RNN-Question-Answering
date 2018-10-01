@@ -42,10 +42,17 @@ class Trainer(object):
 
         for word in words:
             if word == Constants.UNK_WORD:
-                char_vectors.append([0] * self.vocabs['chars'].size())
+                char_vectors.append(F.torch.zeros(self.vocabs['chars'].size()))
             else:
-                chars = torch.tensor([self.vocabs['chars'].getIndex(char) for char in word])
-                char_vectors.append(F.torch.sum(self.embeddings['chars'](chars), 0) / len(chars))
+                char_vector = []
+                for char in word:
+                    if self.vocabs['chars'].getIndex(char) != None:
+                        char_vector.append(self.vocabs['chars'].getIndex(char) )
+                    else:
+                        char_vector.append(0)
+
+                char_vector = torch.tensor(char_vector)
+                char_vectors.append(F.torch.sum(self.embeddings['chars'](char_vector), 0) / len(char_vector))
 
         return F.torch.unsqueeze(torch.stack(char_vectors), 1)
 
