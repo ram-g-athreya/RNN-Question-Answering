@@ -30,12 +30,12 @@
     "return": "uri"
   },
   "8": {
-    "sparql": "SELECT DISTINCT ?uri WHERE { ?uri <p> <r> . ?uri <p2> <r2> . ?uri rdf:type <c> }",
+    "sparql": "SELECT DISTINCT ?uri WHERE { ?uri <p> <r> . ?uri <p2> <r2> . OPTIONAL { ?uri rdf:type <c> } }",
     "slots": ["p", "p2", "c", "r", "r2"],
     "return": "uri"
   },
   "11": {
-    "sparql": "SELECT ?uri WHERE { ?x <p> <r> . ?x <p> ?uri . ?x rdf:type <c> }",
+    "sparql": "SELECT ?uri WHERE { ?x <p> <r> . ?x <p> ?uri . OPTIONAL { ?x rdf:type <c> } }",
     "slots": ["p", "c", "r"],
     "return": "uri"
   },
