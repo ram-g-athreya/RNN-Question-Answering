@@ -35,7 +35,7 @@
     "return": "uri"
   },
   "11": {
-    "sparql": "SELECT ?uri WHERE { ?x <p> <r> . ?x <p> ?uri . OPTIONAL { ?x rdf:type <c> } }",
+    "sparql": "SELECT DISTINCT ?uri WHERE { ?x <p> <r> . ?x <p> ?uri . OPTIONAL { ?x rdf:type <c> } }",
     "slots": ["p", "c", "r"],
     "return": "uri"
   },
@@ -50,37 +50,37 @@
     "return": "uri"
   },
   "101": {
-    "sparql": "SELECT (COUNT(DISTINCT ?uri) as ?count) WHERE { ?uri <p> <r> . OPTIONAL { ?uri rdf:type <c> } }",
+    "sparql": "SELECT DISTINCT (COUNT(?uri) as ?count) WHERE { ?uri <p> <r> . OPTIONAL { ?uri rdf:type <c> } }",
     "slots": ["p", "c", "r"],
     "return": "count"
   },
   "102": {
-    "sparql": "SELECT (COUNT(DISTINCT ?uri) as ?count) WHERE { <r> <p> ?uri }",
+    "sparql": "SELECT DISTINCT (COUNT(?uri) as ?count) WHERE { <r> <p> ?uri }",
     "slots": ["p", "r"],
     "return": "count"
   },
   "103": {
-    "sparql": "SELECT (COUNT(DISTINCT ?uri) as ?count) WHERE { <r> <p> ?x . ?x <p2> ?uri . OPTIONAL { ?x rdf:type <c> } }",
+    "sparql": "SELECT DISTINCT (COUNT(?uri) as ?count) WHERE { <r> <p> ?x . ?x <p2> ?uri . OPTIONAL { ?x rdf:type <c> } }",
     "slots": ["p", "p2", "c", "r"],
     "return": "count"
   },
   "105": {
-    "sparql": "SELECT (COUNT(DISTINCT ?uri) as ?count) WHERE { ?x <p> <r> . ?x <p2> ?uri . OPTIONAL { ?uri rdf:type <c> } }",
+    "sparql": "SELECT DISTINCT (COUNT(?uri) as ?count) WHERE { ?x <p> <r> . ?x <p2> ?uri . OPTIONAL { ?uri rdf:type <c> } }",
     "slots": ["p", "p2", "c", "r"],
     "return": "count"
   },
   "106": {
-    "sparql": "SELECT (COUNT(DISTINCT ?uri) as ?count) WHERE { ?x <p> <r> . ?uri <p2> ?x . ?uri rdf:type <c> }",
+    "sparql": "SELECT DISTINCT (COUNT(?uri) as ?count) WHERE { ?x <p> <r> . ?uri <p2> ?x . ?uri rdf:type <c> }",
     "slots": ["p", "p2", "c", "r", "r2"],
     "return": "count"
   },
   "108": {
-    "sparql": "SELECT (COUNT(DISTINCT ?uri) as ?count) WHERE { ?uri <p> <r> . ?uri <p2> <r2> . }",
+    "sparql": "SELECT DISTINCT (COUNT(?uri) as ?count) WHERE { ?uri <p> <r> . ?uri <p2> <r2> . }",
     "slots": ["p", "p2", "r", "r2"],
     "return": "count"
   },
   "111": {
-    "sparql": "SELECT (COUNT(DISTINCT ?uri) as ?count) WHERE { ?x <p> <r> . ?x <p> ?uri }",
+    "sparql": "SELECT DISTINCT (COUNT(?uri) as ?count) WHERE { ?x <p> <r> . ?x <p> ?uri }",
     "slots": ["p", "r"],
     "return": "count"
   },

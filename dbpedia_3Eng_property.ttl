@@ -446,6 +446,7 @@
 <http://dbpedia.org/ontology/deathPlace> <http://www.w3.org/2000/01/rdf-schema#label> "death place" .
 <http://dbpedia.org/ontology/deathPlace> <http://www.w3.org/2000/01/rdf-schema#label> "place of death" .
 <http://dbpedia.org/ontology/deathPlace> <http://www.w3.org/2000/01/rdf-schema#label> "die in" .
+<http://dbpedia.org/ontology/deathPlace> <http://www.w3.org/2000/01/rdf-schema#label> "died" .
 <http://dbpedia.org/ontology/parent> <http://www.w3.org/2000/01/rdf-schema#label> "child" .
 <http://dbpedia.org/ontology/parent> <http://www.w3.org/2000/01/rdf-schema#label> "parent" .
 <http://dbpedia.org/ontology/state> <http://www.w3.org/2000/01/rdf-schema#label> "located in" .
@@ -860,11 +861,13 @@
 <http://dbpedia.org/ontology/digitalSubChannel> <http://www.w3.org/2000/01/rdf-schema#label> "digital sub channel" .
 <http://dbpedia.org/ontology/director> <http://www.w3.org/2000/01/rdf-schema#label> "film director" .
 <http://dbpedia.org/ontology/director> <http://www.w3.org/2000/01/rdf-schema#label> "director" .
+<http://dbpedia.org/ontology/director> <http://www.w3.org/2000/01/rdf-schema#label> "direct" .
 <http://dbpedia.org/ontology/disbanded> <http://www.w3.org/2000/01/rdf-schema#label> "disbanded" .
 <http://dbpedia.org/ontology/discharge> <http://www.w3.org/2000/01/rdf-schema#label> "discharge (m³/s)" .
 <http://dbpedia.org/ontology/dischargeAverage> <http://www.w3.org/2000/01/rdf-schema#label> "discharge average (m³/s)" .
 <http://dbpedia.org/ontology/discipline> <http://www.w3.org/2000/01/rdf-schema#label> "discipline" .
 <http://dbpedia.org/ontology/discovered> <http://www.w3.org/2000/01/rdf-schema#label> "discovery date" .
+<http://dbpedia.org/ontology/discoverer> <http://www.w3.org/2000/01/rdf-schema#label> "discovered" .
 <http://dbpedia.org/ontology/discoverer> <http://www.w3.org/2000/01/rdf-schema#label> "discoverer" .
 <http://dbpedia.org/ontology/discoverer> <http://www.w3.org/2000/01/rdf-schema#label> "discoverered by" .
 <http://dbpedia.org/ontology/displacement> <http://www.w3.org/2000/01/rdf-schema#label> "displacement (μ³)" .
@@ -1252,6 +1255,7 @@
 <http://dbpedia.org/ontology/mainOrgan> <http://www.w3.org/2000/01/rdf-schema#label> "main organ" .
 <http://dbpedia.org/ontology/mainspan> <http://www.w3.org/2000/01/rdf-schema#label> "mainspan (μ)" .
 <http://dbpedia.org/ontology/maintainedBy> <http://www.w3.org/2000/01/rdf-schema#label> "maintained by" .
+<http://dbpedia.org/ontology/maintainedBy> <http://www.w3.org/2000/01/rdf-schema#label> "maintainer" .
 <http://dbpedia.org/ontology/majorIsland> <http://www.w3.org/2000/01/rdf-schema#label> "major island" .
 <http://dbpedia.org/ontology/majorShrine> <http://www.w3.org/2000/01/rdf-schema#label> "major shrine" .
 <http://dbpedia.org/ontology/management> <http://www.w3.org/2000/01/rdf-schema#label> "management" .
@@ -3301,6 +3305,7 @@
 <http://dbpedia.org/property/placeOfBirth> <http://www.w3.org/2000/01/rdf-schema#label> "place of birth" .
 <http://dbpedia.org/property/placeOfBirth> <http://www.w3.org/2000/01/rdf-schema#label> "born" .
 <http://dbpedia.org/property/placeofburial> <http://www.w3.org/2000/01/rdf-schema#label> "placeofburial" .
+<http://dbpedia.org/property/placeofburial> <http://www.w3.org/2000/01/rdf-schema#label> "buried" .
 <http://dbpedia.org/property/placeOfBurial> <http://www.w3.org/2000/01/rdf-schema#label> "place of burial" .
 <http://dbpedia.org/property/placeofdeath> <http://www.w3.org/2000/01/rdf-schema#label> "placeofdeath" .
 <http://dbpedia.org/property/placeOfDeath> <http://www.w3.org/2000/01/rdf-schema#label> "place of death" .

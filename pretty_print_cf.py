@@ -61,7 +61,7 @@ def configcell_text_and_colors(array_df, lin, col, oText, facecolors, posi, fz, 
         else:
             per_ok = per_err = 0
 
-        per_ok_s = ['%.2f%%'%(per_ok), '100%'] [per_ok == 100]
+        per_ok_s = ['%.1f%%'%(per_ok), '100%'] [per_ok == 100]
 
         #text to DEL
         text_del.append(oText)
@@ -69,10 +69,10 @@ def configcell_text_and_colors(array_df, lin, col, oText, facecolors, posi, fz, 
         #text to ADD
         font_prop = fm.FontProperties(weight='bold', size=fz)
         text_kwargs = dict(color='w', ha="center", va="center", gid='sum', fontproperties=font_prop)
-        lis_txt = ['%d'%(cell_val), per_ok_s, '%.2f%%'%(per_err)]
+        lis_txt = ['%d'%(cell_val), per_ok_s, '%.1f%%'%(per_err)]
         lis_kwa = [text_kwargs]
-        dic = text_kwargs.copy(); dic['color'] = 'g'; lis_kwa.append(dic);
-        dic = text_kwargs.copy(); dic['color'] = 'r'; lis_kwa.append(dic);
+        dic = text_kwargs.copy(); dic['color'] = 'g'; lis_kwa.append(dic)
+        dic = text_kwargs.copy(); dic['color'] = 'r'; lis_kwa.append(dic)
         lis_pos = [(oText._x, oText._y-0.3), (oText._x, oText._y), (oText._x, oText._y+0.3)]
         for i in range(len(lis_txt)):
             newText = dict(x=lis_pos[i][0], y=lis_pos[i][1], text=lis_txt[i], kw=lis_kwa[i])
@@ -88,7 +88,7 @@ def configcell_text_and_colors(array_df, lin, col, oText, facecolors, posi, fz, 
 
     else:
         if(per > 0):
-            txt = '%s\n%.2f%%' %(cell_val, per)
+            txt = '%s\n%.1f%%' %(cell_val, per)
         else:
             if(show_null_values == 0):
                 txt = ''
@@ -124,7 +124,7 @@ def insert_totals(df_cm):
     #print ('\ndf_cm:\n', df_cm, '\n\b\n')
 #
 
-def pretty_plot_confusion_matrix(df_cm, annot=True, cmap="Oranges", fmt='.2f', fz=11,
+def pretty_plot_confusion_matrix(df_cm, annot=True, cmap="Oranges", fmt='.1f', fz=11,
       lw=0.5, cbar=False, figsize=[8,8], show_null_values=0, pred_val_axis='y'):
     """
       print conf matrix with default layout (like matlab)
@@ -176,6 +176,9 @@ def pretty_plot_confusion_matrix(df_cm, annot=True, cmap="Oranges", fmt='.2f', f
     array_df = np.array( df_cm.to_records(index=False).tolist() )
     text_add = []; text_del = []
     posi = -1 #from left to right, bottom to top.
+
+    sn.set(font_scale=2.5)
+
     for t in ax.collections[0].axes.texts: #ax.texts:
         pos = np.array( t.get_position()) - [0.5,0.5]
         lin = int(pos[1]); col = int(pos[0])
@@ -197,7 +200,7 @@ def pretty_plot_confusion_matrix(df_cm, annot=True, cmap="Oranges", fmt='.2f', f
 
     #titles and legends
     #ax.set_title('Confusion matrix')
-    ax.set_xlabel(xlbl, size=35)
-    ax.set_ylabel(ylbl, size=35)
+    ax.set_xlabel(xlbl, fontsize=fz)
+    ax.set_ylabel(ylbl, fontsize=fz)
     plt.tight_layout()
     return plt

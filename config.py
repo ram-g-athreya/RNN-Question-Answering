@@ -22,7 +22,7 @@ def parse_args():
                         help='batchsize for optimizer updates')
     parser.add_argument('--lr', default=1e-2, type=float,
                         metavar='LR', help='initial learning rate')
-    parser.add_argument('--wd', default=1.5e-3, type=float,
+    parser.add_argument('--wd', default=2.25e-3, type=float,
                         help='weight decay (default: 1e-4)')
     parser.add_argument('--emblr', default=1e-2, type=float,
                         metavar='EMLR', help='initial embedding learning rate')
