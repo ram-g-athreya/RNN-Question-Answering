@@ -1,5 +1,5 @@
 # Template-based Question Answering over Recursive Neural Networks
-This project contains the source code for a template classification model on the [LC-QuAD](http://lc-quad.sda.tech/) dataset using recursive neural network implemented in Pytorch.
+This project contains the source code for a template classification model on the [LC-QuAD](http://lc-quad.sda.tech/) dataset using a recursive neural network implemented in Pytorch.
 
 ## Instructions
 First download the LC-QuAD dataset and pre-process it into train and test data.
